@@ -1,31 +1,12 @@
-# Task Management System 📝
+# React + Vite
 
-A web-based task management system built with **React**, **Tailwind CSS**, and **React Router**. This system allows users (students and admins) to sign up, manage tasks, and interact in a responsive and clean interface.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## ✨ Features
+Currently, two official plugins are available:
 
-- 🔐 User Authentication (Sign In / Sign Up)
-- 👤 Role-based Interface (Student / Admin)
-- ✅ Task Management Dashboard
-- 🌙 Dark Mode Support
-- 🧭 Single Page Application (SPA) with React Router
-- 📱 Fully Responsive UI
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## 🚀 Tech Stack
+## Expanding the ESLint configuration
 
-- **Frontend:** React, Tailwind CSS
-- **Routing:** React Router
-- **State Management:** React State / Context (if applicable)
-
-## 📂 Project Structure :
-src/
-├── components/ # Reusable UI components
-├── pages/ # SignIn, SignUp, Home, etc.
-├── assets/ # Images and static files
-├── App.jsx # Main app component with routes
-├── main.jsx # Entry point
-
-Done By : Amjad Mousa,Arqam Mousa 
-
-لآ
-
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

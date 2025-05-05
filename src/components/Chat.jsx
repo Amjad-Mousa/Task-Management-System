@@ -62,11 +62,11 @@ const AdminChat = () => {
 
   return (
     <div className="flex h-screen bg-gray-900 text-gray-100">
-      {/* الشريط الجانبي (Sidebar) للأدمن */}
+      {/*Admin sidebar*/}
       <div className="w-64 bg-gray-800 p-4 flex flex-col border-r border-gray-700">
         <h2 className="text-xl font-bold mb-4">Admin Chat</h2>
 
-        {/* قائمة المستخدمين، والتي يمكن للأدمن اختيار المحادثة معها */}
+        {/* Admin user text box*/}
         <ul className="flex-1 overflow-y-auto mb-4">
           {users.map(user => (
             <li
@@ -79,7 +79,7 @@ const AdminChat = () => {
           ))}
         </ul>
 
-        {/* قائمة التنقل */}
+        {/*Nav bar*/}
         <nav className="space-y-2 border-t border-gray-700 pt-4">
           <Link to="/home" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
             <span className="mr-2">🏠</span> Home
@@ -95,7 +95,6 @@ const AdminChat = () => {
           </Link>
         </nav>
 
-        {/* تسجيل الخروج */}
         <button
           onClick={handleLogout}
           className="mt-4 p-2 bg-red-600 rounded-lg hover:bg-red-500"
@@ -104,9 +103,8 @@ const AdminChat = () => {
         </button>
       </div>
 
-      {/* نافذة الدردشة */}
       <div className="flex-1 flex flex-col">
-        {/* رأس الدردشة */}
+        
         <div className="p-4 border-b border-gray-700">
           <h3 className="text-lg font-semibold">
             {currentUser 
@@ -115,7 +113,7 @@ const AdminChat = () => {
           </h3>
         </div>
 
-        {/* منطقة الرسائل */}
+        {/* Messages area*/}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {currentUser && messages[currentUser]?.map((msg, index) => (
             <div
@@ -130,7 +128,7 @@ const AdminChat = () => {
           ))}
         </div>
 
-        {/* إدخال الرسالة */}
+        {/* Enter message*/}
         <div className="p-4 border-t border-gray-700">
           <div className="flex gap-2">
             <input

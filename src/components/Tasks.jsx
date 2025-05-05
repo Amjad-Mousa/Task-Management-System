@@ -12,7 +12,7 @@ const Tasks = () => {
   const [tasks, setTasks] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'project', direction: 'asc' });
   const [sortBy, setSortBy] = useState('project');
-  const [taskToRemove, setTaskToRemove] = useState(null); // لتحديد المهمة التي سيتم حذفها
+  const [taskToRemove, setTaskToRemove] = useState(null); 
 
   useEffect(() => {
     document.title = 'TasksManagement | Task Manager';
@@ -123,10 +123,9 @@ const Tasks = () => {
     sortTasks(event.target.value);
   };
 
-  // دالة لإزالة المهمة
   const removeTask = () => {
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskToRemove));
-    setTaskToRemove(null); // بعد الحذف نعيد تعيين المهمة التي سيتم حذفها
+    setTaskToRemove(null);
   };
 
   return (

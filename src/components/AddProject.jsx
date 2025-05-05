@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from "react";
 
-// وظيفة بسيطة لإنشاء ID فريد
 const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
 
 const AddProject = () => {
@@ -39,7 +38,7 @@ const AddProject = () => {
     }
 
     const newProject = {
-      id: generateId(), // ✅ أضف معرف فريد
+      id: generateId(), 
       title: projectTitle,
       description: projectDescription,
       students: selectedStudents,
@@ -51,7 +50,6 @@ const AddProject = () => {
       tasks: []
     };
 
-    // حفظ المشروع في localStorage
     const existingProjects = JSON.parse(localStorage.getItem('projects')) || [];
     localStorage.setItem('projects', JSON.stringify([...existingProjects, newProject]));
 
@@ -68,7 +66,6 @@ const AddProject = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* باقي الحقول كما هي بدون تغيير */}
           {/* Project Title */}
           <div className="space-y-2">
             <label className="block text-sm font-medium">Project Title</label>
