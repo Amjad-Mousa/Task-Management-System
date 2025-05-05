@@ -7,11 +7,10 @@ export default function SignIn() {
   const [staySignedIn, setStaySignedIn] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
 
-  const navigate = useNavigate(); // Using useNavigate correctly
+  const navigate = useNavigate(); 
 
-  // Set the page title using useEffect
   useEffect(() => {
-    document.title = "Sign In - Task Manager "; // Change 'MyApp' to your app's name
+    document.title = "Sign In - Task Manager "; 
   }, []);
 
   const handleSubmit = (e) => {

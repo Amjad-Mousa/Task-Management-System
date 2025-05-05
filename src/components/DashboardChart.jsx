@@ -9,7 +9,6 @@ import {
   Legend
 } from 'chart.js';
 
-// تسجيل المكونات المطلوبة من Chart.js
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const DashboardChart = ({ stats }) => {
@@ -25,10 +24,10 @@ const DashboardChart = ({ stats }) => {
           stats.finishedProjectsCount
         ],
         backgroundColor: [
-          'rgba(255, 99, 132, 0.3)',   // Projects - أحمر فاتح
-          'rgba(54, 162, 235, 0.3)',   // Students - أزرق فاتح
-          'rgba(255, 206, 86, 0.3)',   // Tasks - أصفر فاتح
-          'rgba(75, 192, 192, 0.3)'    // Finished Projects - أخضر مائل للزرقة
+          'rgba(255, 99, 132, 0.3)',   // Projects
+          'rgba(54, 162, 235, 0.3)',   // Students
+          'rgba(255, 206, 86, 0.3)',   // Tasks
+          'rgba(75, 192, 192, 0.3)'    // Finished Projects
         ],
         borderColor: [
           'rgba(255, 99, 132, 1)',
