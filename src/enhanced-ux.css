@@ -12,18 +12,22 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+.dark .btn-hover-effect:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
 .btn-hover-effect:active {
   transform: translateY(0);
 }
 
 /* Focus visible styles for better keyboard navigation */
 :focus-visible {
-  outline: 2px solid #3b82f6 !important;
+  outline: 2px solid var(--blue-accent-light) !important;
   outline-offset: 2px !important;
 }
 
 .dark :focus-visible {
-  outline: 2px solid #60a5fa !important;
+  outline: 2px solid var(--blue-accent-dark) !important;
 }
 
 /* Card hover effects */
@@ -61,7 +65,7 @@
   height: 2px;
   bottom: -2px;
   left: 0;
-  background-color: #3b82f6;
+  background-color: var(--blue-accent-light);
   transition: width 0.3s ease;
 }
 
@@ -70,17 +74,17 @@
 }
 
 .dark .nav-link-hover::after {
-  background-color: #60a5fa;
+  background-color: var(--blue-accent-dark);
 }
 
 /* Input focus effects */
 .input-focus-effect:focus {
-  border-color: #3b82f6;
+  border-color: var(--blue-accent-light);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
 }
 
 .dark .input-focus-effect:focus {
-  border-color: #60a5fa;
+  border-color: var(--blue-accent-dark);
   box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
 }
 
@@ -126,6 +130,16 @@
   }
 }
 
+/* Light mode tooltip */
+.tooltip:hover::before {
+  background-color: #1f2937;
+  color: white;
+}
+
+.tooltip:hover::after {
+  border-color: #1f2937 transparent transparent transparent;
+}
+
 /* Dark mode tooltip */
 .dark .tooltip:hover::before {
   background-color: #e5e7eb;
@@ -134,4 +148,16 @@
 
 .dark .tooltip:hover::after {
   border-color: #e5e7eb transparent transparent transparent;
+}
+
+/* Theme transition */
+body,
+aside,
+main,
+div,
+button,
+input,
+select,
+textarea {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
