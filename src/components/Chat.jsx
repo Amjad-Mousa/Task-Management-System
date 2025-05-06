@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { DarkModeContext } from '../Context/DarkModeContext';
+import DarkModeToggle from './DarkModeToggle';
 
 const AdminChat = () => {
   const navigate = useNavigate();
+  const { isDarkMode } = useContext(DarkModeContext);
   const [currentUser, setCurrentUser] = useState(null);
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState({});
-  const [users, setUsers] = useState([]); 
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     document.title = "Chat | Task Manager";
@@ -61,10 +64,17 @@ const AdminChat = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-gray-100">
+    <div className={`flex h-screen ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-100 text-gray-800'}`}>
       {/*Admin sidebar*/}
-      <div className="w-64 bg-gray-800 p-4 flex flex-col border-r border-gray-700">
-        <h2 className="text-xl font-bold mb-4">Admin Chat</h2>
+      <div className={`w-64 p-4 flex flex-col border-r relative ${
+        isDarkMode
+          ? 'bg-gray-800 text-white border-gray-700'
+          : 'bg-white text-gray-800 border-gray-200'
+      }`}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Admin Chat</h2>
+          <DarkModeToggle />
+        </div>
 
         {/* Admin user text box*/}
         <ul className="flex-1 overflow-y-auto mb-4">
@@ -72,7 +82,13 @@ const AdminChat = () => {
             <li
               key={user.id}
               onClick={() => setCurrentUser(user.id)}
-              className={`p-2 cursor-pointer rounded-lg mb-1 ${currentUser === user.id ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              className={`p-2 cursor-pointer rounded-lg mb-1 ${
+                currentUser === user.id
+                  ? 'bg-blue-600 text-white'
+                  : isDarkMode
+                    ? 'hover:bg-gray-700'
+                    : 'hover:bg-gray-200'
+              }`}
             >
               {user.name}
             </li>
@@ -80,17 +96,17 @@ const AdminChat = () => {
         </ul>
 
         {/*Nav bar*/}
-        <nav className="space-y-2 border-t border-gray-700 pt-4">
-          <Link to="/home" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
+        <nav className={`space-y-2 border-t pt-4 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <Link to="/home" className={`flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
             <span className="mr-2">🏠</span> Home
           </Link>
-          <Link to="/projects" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
+          <Link to="/projects" className={`flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
             <span className="mr-2">📂</span> Projects
           </Link>
-          <Link to="/tasks" className="flex items-center p-2 rounded-lg hover:bg-gray-700">
+          <Link to="/tasks" className={`flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
             <span className="mr-2">✅</span> Tasks
           </Link>
-          <Link to="/chat" className="flex items-center p-2 rounded-lg bg-blue-600">
+          <Link to="/chat" className="flex items-center p-2 rounded-lg bg-blue-600 text-white">
             <span className="mr-2">💬</span> Chat
           </Link>
         </nav>
@@ -103,11 +119,11 @@ const AdminChat = () => {
         </button>
       </div>
 
-      <div className="flex-1 flex flex-col">
-        
-        <div className="p-4 border-b border-gray-700">
+      <div className={`flex-1 flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+
+        <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <h3 className="text-lg font-semibold">
-            {currentUser 
+            {currentUser
               ? `Chatting with ${users.find(u => u.id === currentUser)?.name}`
               : "Select a user to start chatting"}
           </h3>
@@ -118,7 +134,11 @@ const AdminChat = () => {
           {currentUser && messages[currentUser]?.map((msg, index) => (
             <div
               key={index}
-              className={`max-w-[70%] p-3 rounded-lg ${msg.sender === 'received' ? 'bg-gray-800 self-start' : 'bg-blue-600 self-end'}`}
+              className={`max-w-[70%] p-3 rounded-lg ${
+                msg.sender === 'received'
+                  ? isDarkMode ? 'bg-gray-800 self-start' : 'bg-gray-200 self-start'
+                  : 'bg-blue-600 text-white self-end'
+              }`}
             >
               <p>{msg.text}</p>
               <p className="text-xs text-gray-400 mt-1">
@@ -129,7 +149,7 @@ const AdminChat = () => {
         </div>
 
         {/* Enter message*/}
-        <div className="p-4 border-t border-gray-700">
+        <div className={`p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex gap-2">
             <input
               type="text"
@@ -137,12 +157,16 @@ const AdminChat = () => {
               onChange={(e) => setMessageInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="Type your message..."
-              className="flex-1 p-2 bg-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`flex-1 p-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isDarkMode
+                  ? 'bg-gray-800 text-white border-gray-700'
+                  : 'bg-white text-gray-800 border border-gray-300'
+              }`}
               disabled={!currentUser}
             />
             <button
               onClick={handleSendMessage}
-              className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:opacity-50"
               disabled={!currentUser}
             >
               Send

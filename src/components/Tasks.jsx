@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DarkModeToggle from './DarkModeToggle';
 import Sidebar from './Sidebar';
+import AddTaskModal from './AddTaskModal';
+import { DarkModeContext } from '../Context/DarkModeContext';
 
 const Tasks = () => {
   const navigate = useNavigate();
+  const { isDarkMode } = useContext(DarkModeContext);
 
   const [datetime, setDatetime] = useState('');
   const [username, setUsername] = useState('');
@@ -13,6 +16,7 @@ const Tasks = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'project', direction: 'asc' });
   const [sortBy, setSortBy] = useState('project');
   const [taskToRemove, setTaskToRemove] = useState(null);
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
 
   useEffect(() => {
     document.title = 'TasksManagement | Task Manager';
@@ -121,6 +125,14 @@ const Tasks = () => {
     setTaskToRemove(null);
   };
 
+  const handleAddTask = (newTask) => {
+    setTasks((prevTasks) => [...prevTasks, newTask]);
+
+    // Also save to localStorage
+    const existingTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    localStorage.setItem('tasks', JSON.stringify([...existingTasks, newTask]));
+  };
+
   return (
     <div className="flex h-screen bg-white dark:bg-gray-900 text-black dark:text-white">
       <Sidebar role="admin" username={username} />
@@ -129,7 +141,7 @@ const Tasks = () => {
         <div className="absolute top-4 right-4 flex gap-2">
           <button
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 btn-hover-effect tooltip flex items-center gap-2"
-            onClick={() => navigate('/add-task')}
+            onClick={() => setIsAddTaskModalOpen(true)}
             data-tooltip="Create a new task"
           >
             <span>➕</span> <span className="font-medium">Add Task</span>
@@ -165,14 +177,16 @@ const Tasks = () => {
           </select>
         </div>
 
-        <div className="w-full overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-100 dark:bg-gray-800">
+        <div className={`w-full overflow-x-auto rounded-lg border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+          <table className={`min-w-full divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
+            <thead className={isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-700'}>
               <tr>
                 {['Project', 'Task', 'Description', 'Assigned To', 'Status', 'Due Date', 'Actions'].map((header) => (
                   <th
                     key={header}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-150 tooltip"
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer transition-colors duration-150 tooltip ${
+                      isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+                    }`}
                     onClick={() => sortTasks(header.toLowerCase().replace(' ', ''))}
                     data-tooltip={`Sort by ${header}`}
                   >
@@ -186,19 +200,19 @@ const Tasks = () => {
                 ))}
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className={`divide-y ${isDarkMode ? 'bg-gray-900 divide-gray-700' : 'bg-white divide-gray-200'}`}>
               {tasks.map((task) => (
                 <tr key={task.id} className="table-row-hover transition-colors duration-150">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                     {task.project}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     {task.taskName}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     {task.description}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     {task.assignedStudent}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -206,13 +220,13 @@ const Tasks = () => {
                       {task.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     {task.dueDate}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     <button
                       onClick={() => setTaskToRemove(task.id)}
-                      className="text-red-600 hover:text-red-700 btn-hover-effect px-3 py-1 rounded tooltip"
+                      className={`px-3 py-1 rounded tooltip ${isDarkMode ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-700'} btn-hover-effect`}
                       data-tooltip="Remove this task"
                     >
                       Remove
@@ -246,6 +260,13 @@ const Tasks = () => {
             </div>
           </div>
         )}
+
+        {/* Add Task Modal */}
+        <AddTaskModal
+          isOpen={isAddTaskModalOpen}
+          onClose={() => setIsAddTaskModalOpen(false)}
+          onAddTask={handleAddTask}
+        />
       </main>
     </div>
   );

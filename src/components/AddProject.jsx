@@ -1,10 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { DarkModeContext } from '../Context/DarkModeContext';
+import DarkModeToggle from './DarkModeToggle';
 
 const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
 
 const AddProject = () => {
   const navigate = useNavigate();
+  const { isDarkMode } = useContext(DarkModeContext);
   const [projectTitle, setProjectTitle] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [selectedStudents, setSelectedStudents] = useState([]);
@@ -38,7 +41,7 @@ const AddProject = () => {
     }
 
     const newProject = {
-      id: generateId(), 
+      id: generateId(),
       title: projectTitle,
       description: projectDescription,
       students: selectedStudents,
@@ -57,9 +60,12 @@ const AddProject = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-100 p-6">
-      <div className="max-w-2xl mx-auto bg-gray-800 p-6 rounded-lg shadow-xl">
-        <h1 className="text-3xl font-bold text-blue-500 mb-6 text-center">Add New Project</h1>
+    <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-100 text-gray-800'}`}>
+      <div className={`max-w-2xl mx-auto p-6 rounded-lg shadow-xl relative ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+        <div className="absolute top-4 right-4">
+          <DarkModeToggle />
+        </div>
+        <h1 className={`text-3xl font-bold mb-6 text-center ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>Add New Project</h1>
 
         {errorMessage && (
           <div className="mb-4 p-3 bg-red-600 text-white rounded-md">{errorMessage}</div>
@@ -73,7 +79,11 @@ const AddProject = () => {
               type="text"
               value={projectTitle}
               onChange={(e) => setProjectTitle(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                isDarkMode
+                  ? 'bg-gray-700 border-gray-600 text-white'
+                  : 'bg-gray-50 border-gray-300 text-gray-800'
+              }`}
               placeholder="Enter project title"
             />
           </div>
@@ -84,7 +94,11 @@ const AddProject = () => {
             <textarea
               value={projectDescription}
               onChange={(e) => setProjectDescription(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32"
+              className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 ${
+                isDarkMode
+                  ? 'bg-gray-700 border-gray-600 text-white'
+                  : 'bg-gray-50 border-gray-300 text-gray-800'
+              }`}
               placeholder="Enter project description"
             />
           </div>
@@ -96,13 +110,21 @@ const AddProject = () => {
               {studentsList.map(student => (
                 <label
                   key={student}
-                  className="flex items-center space-x-2 p-2 bg-gray-700 rounded-md hover:bg-gray-600 cursor-pointer"
+                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer ${
+                    isDarkMode
+                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                      : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                  }`}
                 >
                   <input
                     type="checkbox"
                     checked={selectedStudents.includes(student)}
                     onChange={() => handleStudentSelect(student)}
-                    className="form-checkbox h-4 w-4 text-blue-500 rounded border-gray-600 bg-gray-700 focus:ring-blue-500"
+                    className={`form-checkbox h-4 w-4 text-blue-500 rounded focus:ring-blue-500 ${
+                      isDarkMode
+                        ? 'border-gray-600 bg-gray-700'
+                        : 'border-gray-300 bg-white'
+                    }`}
                   />
                   <span>{student}</span>
                 </label>
@@ -116,7 +138,11 @@ const AddProject = () => {
             <select
               value={projectCategory}
               onChange={(e) => setProjectCategory(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                isDarkMode
+                  ? 'bg-gray-700 border-gray-600 text-white'
+                  : 'bg-gray-50 border-gray-300 text-gray-800'
+              }`}
             >
               <option value="">Select a category</option>
               <option value="Web Development">Web Development</option>
@@ -133,7 +159,11 @@ const AddProject = () => {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+                className={`w-full px-4 py-2 border rounded-md ${
+                  isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-gray-50 border-gray-300 text-gray-800'
+                }`}
               />
             </div>
             <div className="space-y-2">
@@ -142,7 +172,11 @@ const AddProject = () => {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+                className={`w-full px-4 py-2 border rounded-md ${
+                  isDarkMode
+                    ? 'bg-gray-700 border-gray-600 text-white'
+                    : 'bg-gray-50 border-gray-300 text-gray-800'
+                }`}
               />
             </div>
           </div>
@@ -153,7 +187,11 @@ const AddProject = () => {
             <select
               value={projectStatus}
               onChange={(e) => setProjectStatus(e.target.value)}
-              className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                isDarkMode
+                  ? 'bg-gray-700 border-gray-600 text-white'
+                  : 'bg-gray-50 border-gray-300 text-gray-800'
+              }`}
             >
               <option value="In Progress">In Progress</option>
               <option value="Completed">Completed</option>
