@@ -149,21 +149,23 @@ const StudentsChat = () => {
               )}
             </div>
           </Card>
-
           {/* Message input */}
           <Card className="p-4">
             <div className="flex items-center gap-2">
               <div className="flex-1 relative">
-                <Input
-                  type="text"
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  placeholder="Type your message..."
-                  className="w-full mb-0 py-3 px-4 text-base pr-4"
-                  disabled={!currentUser}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                />
+                <div className="my-4">
+                  <Input
+                    type="text"
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    placeholder="Type your message..."
+                    className="w-full mb-0 py-3 px-4 text-base pr-4"
+                    disabled={!currentUser}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                  />
+                </div>
               </div>
+
               <Button
                 onClick={handleSendMessage}
                 disabled={!currentUser}

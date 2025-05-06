@@ -165,34 +165,38 @@ const AdminChat = () => {
           <Card className="p-4">
             <div className="flex items-center gap-2">
               <div className="flex-1 relative">
-                <Input
-                  type="text"
-                  value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
-                  placeholder="Type your message..."
-                  className="w-full mb-0 py-3 px-4 text-base pr-4"
-                  disabled={!currentUser}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                />
+                <div className="my-4">
+                  <Input
+                    type="text"
+                    value={messageInput}
+                    onChange={(e) => setMessageInput(e.target.value)}
+                    placeholder="Type your message..."
+                    className="w-full mb-0 py-3 px-4 text-base pr-4"
+                    disabled={!currentUser}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                  />
+                </div>
               </div>
-              <Button
-                onClick={handleSendMessage}
-                disabled={!currentUser}
-                className="px-6 py-3 rounded-md"
-                variant="primary"
-                icon={
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-1"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                  </svg>
-                }
-              >
-                Send
-              </Button>
+              <div>
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!currentUser}
+                  className="px-6 py-3 rounded-md"
+                  variant="primary"
+                  icon={
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 mr-1"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                    </svg>
+                  }
+                >
+                  Send
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
