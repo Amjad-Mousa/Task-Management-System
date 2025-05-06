@@ -31,7 +31,7 @@ export default function SignUp() {
   };
 
   // Initialize form with useForm hook
-  const { values, handleChange, handleSubmit, errors, setErrors } = useForm(
+  const { values, handleChange, handleSubmit, errors } = useForm(
     {
       username: "",
       password: "",

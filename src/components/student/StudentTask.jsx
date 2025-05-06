@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { DashboardLayout } from "./layout";
-import { Card, Button, Select, StatusBadge } from "./ui";
+import { DashboardLayout } from "../layout";
+import { Card, Button, Select, StatusBadge } from "../ui";
 
 /**
  * StudentTask component for student task management
  */
-const StuTask = () => {
+const StudentTask = () => {
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [sortedTasks, setSortedTasks] = useState([]);
@@ -166,4 +166,4 @@ const TaskItem = ({ task, isSelected, onClick }) => {
   );
 };
 
-export default StuTask;
+export default StudentTask;

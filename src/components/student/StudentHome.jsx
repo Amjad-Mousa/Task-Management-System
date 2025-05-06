@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { DashboardLayout } from "./layout";
-import { Card, StatusBadge } from "./ui";
-import { StatCard } from "./shared";
+import { DashboardLayout } from "../layout";
+import { Card, StatusBadge } from "../ui";
+import { StatCard } from "../shared";
 
 /**
  * StudentHome component for student dashboard

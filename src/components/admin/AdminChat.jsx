@@ -1,18 +1,16 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { DashboardLayout } from "./layout";
-import { ChatInterface } from "./shared";
+import { DashboardLayout } from "../layout";
+import { ChatInterface } from "../shared";
 
 /**
  * AdminChat component for admin chat interface
  */
 const AdminChat = () => {
-  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [initialMessages, setInitialMessages] = useState({});
 
   useEffect(() => {
-    document.title = "Chat | Task Manager";
+    document.title = "Admin Chat | Task Manager";
   }, []);
 
   useEffect(() => {
@@ -36,22 +34,23 @@ const AdminChat = () => {
 
   useEffect(() => {
     const messages = {
-      1: [{ text: "Salam Alykourn", sender: "received", timestamp: new Date().toISOString() }],
+      1: [
+        {
+          text: "Salam Alykourn",
+          sender: "received",
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
     setInitialMessages(messages);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    navigate("/signin");
-  };
-
   return (
     <DashboardLayout role="admin" title="Chat Dashboard">
-      <ChatInterface 
-        role="admin" 
-        users={users} 
-        initialMessages={initialMessages} 
+      <ChatInterface
+        role="admin"
+        users={users}
+        initialMessages={initialMessages}
       />
     </DashboardLayout>
   );

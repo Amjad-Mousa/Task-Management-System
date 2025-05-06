@@ -4,7 +4,7 @@ import { Card, Button, Input } from "../ui";
 /**
  * Shared ChatInterface component for both admin and student chat interfaces
  */
-const ChatInterface = ({ role, users, initialMessages = {} }) => {
+const ChatInterface = ({ users, initialMessages = {} }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [messageInput, setMessageInput] = useState("");
   const [messages, setMessages] = useState(initialMessages);

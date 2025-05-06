@@ -1,11 +1,11 @@
 /**
- * StudentsChat component for student chat interface
+ * StudentChat component for student chat interface
  */
 import { useState, useEffect } from "react";
-import { DashboardLayout } from "./layout";
-import { ChatInterface } from "./shared";
+import { DashboardLayout } from "../layout";
+import { ChatInterface } from "../shared";
 
-const StudentsChat = () => {
+const StudentChat = () => {
   const [users, setUsers] = useState([]);
   const [initialMessages, setInitialMessages] = useState({});
 
@@ -51,4 +51,4 @@ const StudentsChat = () => {
   );
 };
 
-export default StudentsChat;
+export default StudentChat;

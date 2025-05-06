@@ -1,6 +1,5 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import { DarkModeContext } from "../../Context/DarkModeContext";
 import DarkModeToggle from "../DarkModeToggle";
 
 /**
@@ -8,7 +7,6 @@ import DarkModeToggle from "../DarkModeToggle";
  * Displays either a welcome message or a title, and the dark mode toggle
  */
 const PageHeader = ({ title, showWelcomeMessage = false, role = "admin" }) => {
-  const { isDarkMode } = useContext(DarkModeContext);
   const [username, setUsername] = useState("");
   const [datetime, setDatetime] = useState("");
 

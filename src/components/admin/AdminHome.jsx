@@ -1,14 +1,14 @@
 import { useEffect } from "react";
-import DashboardChart from "./DashboardChart";
-import { DashboardLayout } from "./layout";
-import { StatCard } from "./shared";
+import { DashboardChart } from "../DashboardChart";
+import { DashboardLayout } from "../layout";
+import { StatCard } from "../shared";
 
 /**
- * Home component for admin dashboard
+ * AdminHome component for admin dashboard
  */
-const Home = () => {
+const AdminHome = () => {
   useEffect(() => {
-    document.title = "Dashboard | Task Manager";
+    document.title = "Admin Dashboard | Task Manager";
   }, []);
 
   // Dashboard statistics
@@ -40,4 +40,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default AdminHome;
