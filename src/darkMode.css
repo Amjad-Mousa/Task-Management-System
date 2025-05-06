@@ -1,0 +1,96 @@
+/* Dark mode styles */
+:root {
+  --bg-light: #ffffff;
+  --text-light: #000000;
+  --bg-dark: #1a202c;
+  --text-dark: #ffffff;
+  --sidebar-bg: #1f2937;
+  --card-bg-light: #f3f4f6;
+  --card-bg-dark: #374151;
+  --blue-accent: #3b82f6;
+  --blue-accent-dark: #60a5fa;
+  --red-accent: #dc2626;
+  --red-accent-hover: #b91c1c;
+}
+
+body {
+  background-color: var(--bg-light);
+  color: var(--text-light);
+}
+
+.dark body,
+body.dark-mode {
+  background-color: var(--bg-dark) !important;
+  color: var(--text-dark) !important;
+}
+
+/* Force dark mode styles */
+.dark .bg-white,
+.dark-mode .bg-white {
+  background-color: var(--bg-dark) !important;
+}
+
+.dark .text-black,
+.dark-mode .text-black {
+  color: var(--text-dark) !important;
+}
+
+/* Consistent sidebar styling */
+.dark aside,
+.dark-mode aside {
+  background-color: var(--sidebar-bg) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Consistent card styling */
+.dark .bg-gray-200,
+.dark-mode .bg-gray-200,
+.dark .dark\:bg-gray-700,
+.dark-mode .dark\:bg-gray-700 {
+  background-color: var(--card-bg-dark) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Consistent text colors */
+.dark .text-gray-800,
+.dark-mode .text-gray-800,
+.dark .dark\:text-gray-100,
+.dark-mode .dark\:text-gray-100 {
+  color: var(--text-dark) !important;
+}
+
+.dark .text-blue-600,
+.dark-mode .text-blue-600,
+.dark .dark\:text-blue-400,
+.dark-mode .dark\:text-blue-400 {
+  color: var(--blue-accent-dark) !important;
+}
+
+/* Consistent button styling */
+.dark .bg-blue-600,
+.dark-mode .bg-blue-600 {
+  background-color: var(--blue-accent) !important;
+}
+
+.dark .bg-red-600,
+.dark-mode .bg-red-600 {
+  background-color: var(--red-accent) !important;
+}
+
+.dark .hover\:bg-red-700:hover,
+.dark-mode .hover\:bg-red-700:hover {
+  background-color: var(--red-accent-hover) !important;
+}
+
+/* Ensure borders and outlines are visible in dark mode */
+.dark *:focus,
+.dark-mode *:focus {
+  outline: 2px solid var(--blue-accent-dark) !important;
+  outline-offset: 2px !important;
+}
+
+/* Consistent shadows for cards */
+.dark .shadow,
+.dark-mode .shadow {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}

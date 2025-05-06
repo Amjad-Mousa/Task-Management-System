@@ -10,17 +10,19 @@ import AddProject from './components/AddProject';
 import Tasks from './components/Tasks';
 import AddTask from './components/AddTask';
 import Chat from './components/Chat';
-import StudentTask from './components/StudentTask';  
+import StudentTask from './components/StudentTask';
 import StudentsChat from './components/StudentsChat';
+import { DarkModeProvider } from './Context/DarkModeContext';
 
 function App() {
   return (
+    <DarkModeProvider>
       <Router>
         <Routes>
           <Route path="/" element={<SignIn />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
-          <Route path="/home" element={<Home />} />       
+          <Route path="/home" element={<Home />} />
           <Route path="/projects" element={<Projects />} />
           <Route path="/add-project" element={<AddProject />} />
           <Route path="/tasks" element={<Tasks />} />
@@ -31,6 +33,7 @@ function App() {
           <Route path="/student-chat" element={<StudentsChat />} />
         </Routes>
       </Router>
+    </DarkModeProvider>
   );
 }
 
