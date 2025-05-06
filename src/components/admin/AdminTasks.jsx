@@ -53,8 +53,7 @@ const AdminTasks = () => {
         id: 4,
         project: "E-commerce Platform",
         taskName: "Database Design",
-        description:
-          "Create database schema for the e-commerce platform.",
+        description: "Create database schema for the e-commerce platform.",
         assignedStudent: "Ayman Oulom",
         status: "Pending",
         dueDate: "3/30/2023",
@@ -66,17 +65,21 @@ const AdminTasks = () => {
 
   const getStatusColor = (status) => {
     const normalizedStatus = status.toLowerCase().replace(" ", "");
+    const { isDarkMode } = useContext(DarkModeContext);
+
     switch (normalizedStatus) {
       case "completed":
-        return "bg-green-600"; // Green for Completed
+        return isDarkMode ? "bg-green-900/30 text-green-300" : "bg-green-600"; // Green for Completed
       case "inprogress":
-        return "bg-yellow-500"; // Yellow for In Progress
+        return isDarkMode
+          ? "bg-yellow-900/30 text-yellow-300"
+          : "bg-yellow-500"; // Yellow for In Progress
       case "pending":
-        return "bg-gray-500"; // Gray for Pending
+        return isDarkMode ? "bg-gray-700/30 text-gray-300" : "bg-gray-500"; // Gray for Pending
       case "notstarted":
-        return "bg-red-600"; // Red for Not Started
+        return isDarkMode ? "bg-red-900/30 text-red-300" : "bg-red-600"; // Red for Not Started
       default:
-        return "bg-gray-500";
+        return isDarkMode ? "bg-gray-700/30 text-gray-300" : "bg-gray-500";
     }
   };
 
@@ -121,8 +124,8 @@ const AdminTasks = () => {
   };
 
   return (
-    <DashboardLayout 
-      role="admin" 
+    <DashboardLayout
+      role="admin"
       title="Tasks Overview"
       successMessage={successMessage}
     >
@@ -147,7 +150,7 @@ const AdminTasks = () => {
             <option value="dueDate">Due Date</option>
           </select>
         </div>
-        
+
         <button
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 btn-hover-effect tooltip flex items-center gap-2"
           onClick={() => setIsAddTaskModalOpen(true)}
@@ -258,7 +261,7 @@ const AdminTasks = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
-                    className={`inline-block px-3 py-1 text-sm font-semibold text-white rounded-full ${getStatusColor(
+                    className={`inline-block px-3 py-1 text-sm font-semibold rounded-full w-28 text-center ${getStatusColor(
                       task.status
                     )}`}
                   >
@@ -281,8 +284,8 @@ const AdminTasks = () => {
                     onClick={() => setTaskToRemove(task.id)}
                     className={`px-3 py-1 rounded tooltip ${
                       isDarkMode
-                        ? "text-red-400 hover:text-red-300"
-                        : "text-red-600 hover:text-red-700"
+                        ? "bg-gray-700 hover:bg-gray-600 text-red-300"
+                        : "bg-gray-200 hover:bg-gray-300 text-red-600"
                     } btn-hover-effect`}
                     data-tooltip="Remove this task"
                   >
@@ -315,7 +318,11 @@ const AdminTasks = () => {
               </button>
               <button
                 onClick={removeTask}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 btn-hover-effect font-medium"
+                className={`px-4 py-2 rounded btn-hover-effect font-medium ${
+                  isDarkMode
+                    ? "bg-gray-700 hover:bg-gray-600 text-red-300"
+                    : "bg-gray-200 hover:bg-gray-300 text-red-600"
+                }`}
               >
                 Yes, Remove
               </button>

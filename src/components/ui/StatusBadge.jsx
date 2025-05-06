@@ -24,7 +24,7 @@ const StatusBadge = ({ status, className = "", size = "md" }) => {
       : "bg-yellow-500 text-white border-yellow-600",
 
     pending: isDarkMode
-      ? "bg-gray-700 text-gray-300 border-gray-600"
+      ? "bg-gray-700/30 text-gray-300 border-gray-600"
       : "bg-gray-500 text-white border-gray-600",
 
     completed: isDarkMode
@@ -59,8 +59,8 @@ const StatusBadge = ({ status, className = "", size = "md" }) => {
   return (
     <span
       className={`
-      inline-flex items-center rounded-full border
-      font-medium whitespace-nowrap
+      inline-flex items-center justify-center rounded-full border
+      font-medium whitespace-nowrap min-w-[7rem] text-center
       ${colorClasses}
       ${sizeClasses[size]}
       ${className}

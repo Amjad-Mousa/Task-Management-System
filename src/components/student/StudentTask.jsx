@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { DashboardLayout } from "../layout";
-import { Card, Button, Select, StatusBadge } from "../ui";
+import { Card, Select, StatusBadge } from "../ui";
+import { DarkModeContext } from "../../Context/DarkModeContext";
 
 /**
  * StudentTask component for student task management
  */
 const StudentTask = () => {
+  const { isDarkMode } = useContext(DarkModeContext);
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [sortedTasks, setSortedTasks] = useState([]);
@@ -22,24 +24,32 @@ const StudentTask = () => {
         title: "Research Report",
         status: "In Progress",
         dueDate: "2025-05-10",
+        description:
+          "Complete the research report on the assigned topic. Include at least 5 academic sources and follow the APA citation format.",
       },
       {
         id: 2,
         title: "Final Presentation",
         status: "Completed",
         dueDate: "2025-04-20",
+        description:
+          "Prepare and deliver a 15-minute presentation on your project findings. Include visual aids and be prepared for Q&A.",
       },
       {
         id: 3,
         title: "Project Documentation",
         status: "Pending",
         dueDate: "2025-05-05",
+        description:
+          "Document all aspects of your project including methodology, findings, and conclusions. Submit in PDF format.",
       },
       {
         id: 4,
         title: "Literature Review",
         status: "Not Started",
         dueDate: "2025-05-15",
+        description:
+          "Conduct a comprehensive literature review on the research topic. Analyze at least 10 relevant academic papers.",
       },
     ];
     setTasks(studentTasks);
@@ -67,8 +77,14 @@ const StudentTask = () => {
   };
 
   const handleTaskClick = (taskId) => {
-    const task = tasks.find((task) => task.id === taskId);
-    setSelectedTask(task);
+    // If the clicked task is already selected, close the details
+    if (selectedTask && selectedTask.id === taskId) {
+      setSelectedTask(null);
+    } else {
+      // Otherwise, show the details for the clicked task
+      const task = tasks.find((task) => task.id === taskId);
+      setSelectedTask(task);
+    }
   };
 
   const handleCloseDetails = () => {
@@ -117,25 +133,52 @@ const StudentTask = () => {
 
         {/* Task Details Section */}
         {selectedTask && (
-          <Card className="w-full max-w-3xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Task Details</h3>
-              <Button variant="danger" size="sm" onClick={handleCloseDetails}>
+          <Card className="w-full max-w-3xl p-4">
+            <div className="flex justify-between items-center mb-3 border-b pb-2 dark:border-gray-700">
+              <h3 className="text-lg font-semibold">Task Details</h3>
+              <button
+                onClick={handleCloseDetails}
+                className={`px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  isDarkMode
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
+                    : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                }`}
+              >
                 Close
-              </Button>
+              </button>
             </div>
-            <div className="space-y-2">
-              <p>
-                <strong>Title:</strong> {selectedTask.title}
-              </p>
-              <p>
-                <strong>Status:</strong>{" "}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <h4 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Title
+                </h4>
+                <p className="font-medium">{selectedTask.title}</p>
+              </div>
+
+              <div>
+                <h4 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Status
+                </h4>
                 <StatusBadge status={selectedTask.status} />
-              </p>
-              <p>
-                <strong>Due Date:</strong>{" "}
-                {new Date(selectedTask.dueDate).toLocaleDateString()}
-              </p>
+              </div>
+
+              <div>
+                <h4 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Due Date
+                </h4>
+                <p>{new Date(selectedTask.dueDate).toLocaleDateString()}</p>
+              </div>
+
+              <div className="col-span-2 mt-1">
+                <h4 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  Description
+                </h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {selectedTask.description ||
+                    "No description available for this task."}
+                </p>
+              </div>
             </div>
           </Card>
         )}

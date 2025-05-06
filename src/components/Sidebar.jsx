@@ -70,7 +70,11 @@ const Sidebar = ({ role = "admin" }) => {
       >
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-2 px-4 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-all duration-200 btn-hover-effect tooltip"
+          className={`flex w-full items-center gap-2 px-4 py-3 rounded-md transition-all duration-200 btn-hover-effect tooltip ${
+            isDarkMode
+              ? "bg-gray-700 hover:bg-gray-600 text-red-300"
+              : "bg-gray-200 hover:bg-gray-300 text-red-600"
+          }`}
           data-tooltip="Log out of your account"
         >
           <span className="text-lg">🚪</span>

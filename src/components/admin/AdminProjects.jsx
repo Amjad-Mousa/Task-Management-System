@@ -53,39 +53,41 @@ const AdminProjects = () => {
   };
 
   return (
-    <DashboardLayout 
-      role="admin" 
+    <DashboardLayout
+      role="admin"
       title="Projects Overview"
       successMessage={deleteMessage}
     >
-      <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto mb-6">
-        <input
-          type="text"
-          placeholder="Search projects..."
-          className={`px-4 py-2 rounded-lg w-full md:w-64 ${
-            isDarkMode
-              ? "bg-gray-800 text-white border-gray-700"
-              : "bg-white text-gray-800 border border-gray-300"
-          }`}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="flex flex-col md:flex-row justify-between items-center w-full mb-6">
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto mb-4 md:mb-0">
+          <input
+            type="text"
+            placeholder="Search projects..."
+            className={`px-4 py-2 rounded-lg w-full md:w-64 ${
+              isDarkMode
+                ? "bg-gray-800 text-white border-gray-700"
+                : "bg-white text-gray-800 border border-gray-300"
+            }`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
 
-        <select
-          className={`px-4 py-2 rounded-lg ${
-            isDarkMode
-              ? "bg-gray-800 text-white border-gray-700"
-              : "bg-white text-gray-800 border border-gray-300"
-          }`}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        >
-          <option value="All">All Categories</option>
-          <option value="Web Development">Web Development</option>
-          <option value="Mobile Development">Mobile Development</option>
-          <option value="Machine Learning">Machine Learning</option>
-        </select>
-        
+          <select
+            className={`px-4 py-2 rounded-lg ${
+              isDarkMode
+                ? "bg-gray-800 text-white border-gray-700"
+                : "bg-white text-gray-800 border border-gray-300"
+            }`}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            <option value="All">All Categories</option>
+            <option value="Web Development">Web Development</option>
+            <option value="Mobile Development">Mobile Development</option>
+            <option value="Machine Learning">Machine Learning</option>
+          </select>
+        </div>
+
         <button
           onClick={() => setIsAddProjectModalOpen(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 btn-hover-effect tooltip flex items-center gap-2"
@@ -131,13 +133,21 @@ const AdminProjects = () => {
               <div className="space-y-2">
                 <p className="font-semibold">Progress:</p>
                 <p
-                  className={`px-4 py-2 rounded-lg text-white ${
+                  className={`px-4 py-2 rounded-lg text-white w-full text-center ${
                     project.progress === 100
-                      ? "bg-green-600"
+                      ? isDarkMode
+                        ? "bg-green-900/30 text-green-300"
+                        : "bg-green-600"
                       : project.progress > 50
-                      ? "bg-yellow-500"
+                      ? isDarkMode
+                        ? "bg-yellow-900/30 text-yellow-300"
+                        : "bg-yellow-500"
                       : project.status === "Pending"
-                      ? "bg-gray-500"
+                      ? isDarkMode
+                        ? "bg-gray-700/30 text-gray-300"
+                        : "bg-gray-500"
+                      : isDarkMode
+                      ? "bg-red-900/30 text-red-300"
                       : "bg-red-600"
                   }`}
                 >
@@ -166,7 +176,11 @@ const AdminProjects = () => {
 
               <button
                 onClick={() => setProjectToDelete(project)}
-                className="px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white"
+                className={`px-3 py-2 rounded-lg ${
+                  isDarkMode
+                    ? "bg-gray-700 hover:bg-gray-600 text-red-300"
+                    : "bg-gray-200 hover:bg-gray-300 text-red-600"
+                }`}
               >
                 Delete
               </button>
@@ -176,9 +190,9 @@ const AdminProjects = () => {
       </div>
 
       {selectedProject && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex justify-end z-50">
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50">
           <div
-            className={`w-full md:w-96 p-6 h-full overflow-y-auto ${
+            className={`p-6 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto ${
               isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
             }`}
           >
@@ -208,35 +222,39 @@ const AdminProjects = () => {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-semibold mb-2">Students</h4>
-                  <p
-                    className={isDarkMode ? "text-gray-300" : "text-gray-600"}
-                  >
+                  <p className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
                     {selectedProject.students?.join(", ")}
                   </p>
                 </div>
 
                 <div>
                   <h4 className="font-semibold mb-2">Category</h4>
-                  <p
-                    className={isDarkMode ? "text-gray-300" : "text-gray-600"}
-                  >
+                  <p className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
                     {selectedProject.category}
                   </p>
                 </div>
 
-                <div className="col-span-2">
+                <div className="col-span-1 md:col-span-2">
                   <h4 className="font-semibold mb-2">Progress</h4>
                   <p
-                    className={`px-4 py-2 rounded-lg text-white ${
+                    className={`px-4 py-2 rounded-lg text-white w-full text-center ${
                       selectedProject.progress === 100
-                        ? "bg-green-600"
+                        ? isDarkMode
+                          ? "bg-green-900/30 text-green-300"
+                          : "bg-green-600"
                         : selectedProject.progress > 50
-                        ? "bg-yellow-500"
+                        ? isDarkMode
+                          ? "bg-yellow-900/30 text-yellow-300"
+                          : "bg-yellow-500"
                         : selectedProject.status === "Pending"
-                        ? "bg-gray-500"
+                        ? isDarkMode
+                          ? "bg-gray-700/30 text-gray-300"
+                          : "bg-gray-500"
+                        : isDarkMode
+                        ? "bg-red-900/30 text-red-300"
                         : "bg-red-600"
                     }`}
                   >
@@ -273,6 +291,19 @@ const AdminProjects = () => {
                 </div>
               )}
             </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setSelectedProject(null)}
+                className={`px-4 py-2 rounded-lg ${
+                  isDarkMode
+                    ? "bg-gray-600 hover:bg-gray-500 text-white"
+                    : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                }`}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -308,7 +339,11 @@ const AdminProjects = () => {
               </button>
               <button
                 onClick={() => confirmDeleteProject(projectToDelete.id)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-lg text-white"
+                className={`px-4 py-2 rounded-lg ${
+                  isDarkMode
+                    ? "bg-gray-700 hover:bg-gray-600 text-red-300"
+                    : "bg-gray-200 hover:bg-gray-300 text-red-600"
+                }`}
               >
                 Confirm Delete
               </button>
