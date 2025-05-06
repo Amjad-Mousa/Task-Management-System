@@ -1,8 +1,8 @@
 import React, { useContext } from "react";
 import PropTypes from "prop-types";
 import { DarkModeContext } from "../../Context/DarkModeContext";
-import DarkModeToggle from "../DarkModeToggle";
 import Card from "../ui/Card";
+import DarkModeToggle from "../DarkModeToggle";
 
 /**
  * AuthLayout component for sign-in and sign-up pages
@@ -25,6 +25,7 @@ const AuthLayout = ({
         <div className="absolute top-3 right-3">
           <DarkModeToggle />
         </div>
+
         <h1 className="text-2xl mb-5 font-bold">{title}</h1>
 
         {children}

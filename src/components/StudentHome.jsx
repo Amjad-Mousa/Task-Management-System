@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { DashboardLayout } from "./layout";
 import { Card, StatusBadge } from "./ui";
+import { StatCard } from "./shared";
 
 /**
  * StudentHome component for student dashboard
@@ -60,18 +61,6 @@ const StudentHome = () => {
         </Card>
       </div>
     </DashboardLayout>
-  );
-};
-
-/**
- * StatCard component for displaying statistics
- */
-const StatCard = ({ title, value }) => {
-  return (
-    <Card className="text-center p-4">
-      <p className="text-lg">{title}</p>
-      <span className="text-2xl font-bold">{value}</span>
-    </Card>
   );
 };
 

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import DashboardChart from "./DashboardChart";
 import { DashboardLayout } from "./layout";
-import { Card } from "./ui";
+import { StatCard } from "./shared";
 
 /**
  * Home component for admin dashboard
@@ -37,18 +37,6 @@ const Home = () => {
         <DashboardChart stats={stats} />
       </div>
     </DashboardLayout>
-  );
-};
-
-/**
- * StatCard component for displaying statistics
- */
-const StatCard = ({ title, value }) => {
-  return (
-    <Card className="text-center card-hover-effect cursor-pointer dashboard-card p-4">
-      <p className="text-lg mb-1">{title}</p>
-      <span className="text-2xl font-bold">{value}</span>
-    </Card>
   );
 };
 
