@@ -1,4 +1,4 @@
-import { Bar } from 'react-chartjs-2';
+import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -6,34 +6,41 @@ import {
   BarElement,
   Title,
   Tooltip,
-  Legend
-} from 'chart.js';
+  Legend,
+} from "chart.js";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const DashboardChart = ({ stats }) => {
   const data = {
-    labels: ['Projects', 'Students', 'Tasks', 'Finished Projects'],
+    labels: ["Projects", "Students", "Tasks", "Finished Projects"],
     datasets: [
       {
-        label: 'Stats',
+        label: "Stats",
         data: [
           stats.projectsCount,
           stats.studentsCount,
           stats.tasksCount,
-          stats.finishedProjectsCount
+          stats.finishedProjectsCount,
         ],
         backgroundColor: [
-          'rgba(255, 99, 132, 0.3)',   // Projects
-          'rgba(54, 162, 235, 0.3)',   // Students
-          'rgba(255, 206, 86, 0.3)',   // Tasks
-          'rgba(75, 192, 192, 0.3)'    // Finished Projects
+          "rgba(255, 99, 132, 0.3)", // Projects
+          "rgba(54, 162, 235, 0.3)", // Students
+          "rgba(255, 206, 86, 0.3)", // Tasks
+          "rgba(75, 192, 192, 0.3)", // Finished Projects
         ],
         borderColor: [
-          'rgba(255, 99, 132, 1)',
-          'rgba(54, 162, 235, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(75, 192, 192, 1)'
+          "rgba(255, 99, 132, 1)",
+          "rgba(54, 162, 235, 1)",
+          "rgba(255, 206, 86, 1)",
+          "rgba(75, 192, 192, 1)",
         ],
         borderWidth: 1,
       },
@@ -45,7 +52,7 @@ const DashboardChart = ({ stats }) => {
     plugins: {
       title: {
         display: true,
-        text: 'Statistics Overview',
+        text: "Statistics Overview",
       },
       tooltip: {
         callbacks: {
