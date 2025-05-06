@@ -57,7 +57,6 @@ const Projects = () => {
       <aside className={`w-64 p-4 flex flex-col ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'}`}>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Projects Manager</h2>
-          <DarkModeToggle />
         </div>
         <nav className="flex-1 space-y-2">
           <Link to="/home" className={`flex items-center p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'}`}>
@@ -82,7 +81,8 @@ const Projects = () => {
         </button>
       </aside>
 
-      <main className={`flex-1 p-6 ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <main className={`flex-1 p-6 relative ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+
         {deleteMessage && (
           <div className="fixed top-0 left-0 right-0 bg-green-600 text-white text-center py-2 z-50">
             {deleteMessage}
@@ -120,12 +120,15 @@ const Projects = () => {
               <option value="Machine Learning">Machine Learning</option>
             </select>
 
-            <button
-              onClick={() => setIsAddProjectModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
-            >
-              Add New Project
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsAddProjectModalOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+              >
+                Add New Project
+              </button>
+              <DarkModeToggle />
+            </div>
           </div>
         </header>
 

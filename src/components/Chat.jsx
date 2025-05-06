@@ -73,7 +73,6 @@ const AdminChat = () => {
       }`}>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Admin Chat</h2>
-          <DarkModeToggle />
         </div>
 
         {/* Admin user text box*/}
@@ -119,7 +118,10 @@ const AdminChat = () => {
         </button>
       </div>
 
-      <div className={`flex-1 flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <div className={`flex-1 flex flex-col relative ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className="absolute top-4 right-4 flex gap-2">
+          <DarkModeToggle />
+        </div>
 
         <div className={`p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <h3 className="text-lg font-semibold">
