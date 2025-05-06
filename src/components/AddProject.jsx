@@ -1,32 +1,38 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useContext } from "react";
-import { DarkModeContext } from '../Context/DarkModeContext';
-import DarkModeToggle from './DarkModeToggle';
+import { DarkModeContext } from "../Context/DarkModeContext";
+import DarkModeToggle from "./DarkModeToggle";
 
-const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
+const generateId = () => "_" + Math.random().toString(36).substr(2, 9);
 
 const AddProject = () => {
   const navigate = useNavigate();
   const { isDarkMode } = useContext(DarkModeContext);
-  const [projectTitle, setProjectTitle] = useState('');
-  const [projectDescription, setProjectDescription] = useState('');
+  const [projectTitle, setProjectTitle] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
   const [selectedStudents, setSelectedStudents] = useState([]);
-  const [projectCategory, setProjectCategory] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [projectStatus, setProjectStatus] = useState('In Progress');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [projectCategory, setProjectCategory] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [projectStatus, setProjectStatus] = useState("In Progress");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const studentsList = ['Student 1', 'Student 2', 'Student 3', 'Student 4', 'Student 5'];
+  const studentsList = [
+    "Student 1",
+    "Student 2",
+    "Student 3",
+    "Student 4",
+    "Student 5",
+  ];
 
   useEffect(() => {
     document.title = "AddProject | Task Manager";
   }, []);
 
   const handleStudentSelect = (student) => {
-    setSelectedStudents(prev =>
+    setSelectedStudents((prev) =>
       prev.includes(student)
-        ? prev.filter(s => s !== student)
+        ? prev.filter((s) => s !== student)
         : [...prev, student]
     );
   };
@@ -34,9 +40,15 @@ const AddProject = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!projectTitle || !projectDescription || !selectedStudents.length ||
-      !projectCategory || !startDate || !endDate) {
-      setErrorMessage('Please fill out all required fields');
+    if (
+      !projectTitle ||
+      !projectDescription ||
+      !selectedStudents.length ||
+      !projectCategory ||
+      !startDate ||
+      !endDate
+    ) {
+      setErrorMessage("Please fill out all required fields");
       return;
     }
 
@@ -50,25 +62,44 @@ const AddProject = () => {
       endDate,
       status: projectStatus,
       progress: 0,
-      tasks: []
+      tasks: [],
     };
 
-    const existingProjects = JSON.parse(localStorage.getItem('projects')) || [];
-    localStorage.setItem('projects', JSON.stringify([...existingProjects, newProject]));
+    const existingProjects = JSON.parse(localStorage.getItem("projects")) || [];
+    localStorage.setItem(
+      "projects",
+      JSON.stringify([...existingProjects, newProject])
+    );
 
-    navigate('/projects');
+    navigate("/projects");
   };
 
   return (
-    <div className={`min-h-screen p-6 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-100 text-gray-800'}`}>
-      <div className={`max-w-2xl mx-auto p-6 rounded-lg shadow-xl relative ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+    <div
+      className={`min-h-screen p-6 ${
+        isDarkMode ? "bg-gray-900 text-gray-100" : "bg-gray-100 text-gray-800"
+      }`}
+    >
+      <div
+        className={`max-w-2xl mx-auto p-6 rounded-lg shadow-xl relative ${
+          isDarkMode ? "bg-gray-800" : "bg-white"
+        }`}
+      >
         <div className="absolute top-4 right-4">
           <DarkModeToggle />
         </div>
-        <h1 className={`text-3xl font-bold mb-6 text-center ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>Add New Project</h1>
+        <h1
+          className={`text-3xl font-bold mb-6 text-center ${
+            isDarkMode ? "text-blue-400" : "text-blue-600"
+          }`}
+        >
+          Add New Project
+        </h1>
 
         {errorMessage && (
-          <div className="mb-4 p-3 bg-red-600 text-white rounded-md">{errorMessage}</div>
+          <div className="mb-4 p-3 bg-red-600 text-white rounded-md">
+            {errorMessage}
+          </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -81,8 +112,8 @@ const AddProject = () => {
               onChange={(e) => setProjectTitle(e.target.value)}
               className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                 isDarkMode
-                  ? 'bg-gray-700 border-gray-600 text-white'
-                  : 'bg-gray-50 border-gray-300 text-gray-800'
+                  ? "bg-gray-700 border-gray-600 text-white"
+                  : "bg-gray-50 border-gray-300 text-gray-800"
               }`}
               placeholder="Enter project title"
             />
@@ -90,14 +121,16 @@ const AddProject = () => {
 
           {/* Project Description */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium">Project Description</label>
+            <label className="block text-sm font-medium">
+              Project Description
+            </label>
             <textarea
               value={projectDescription}
               onChange={(e) => setProjectDescription(e.target.value)}
               className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent h-32 ${
                 isDarkMode
-                  ? 'bg-gray-700 border-gray-600 text-white'
-                  : 'bg-gray-50 border-gray-300 text-gray-800'
+                  ? "bg-gray-700 border-gray-600 text-white"
+                  : "bg-gray-50 border-gray-300 text-gray-800"
               }`}
               placeholder="Enter project description"
             />
@@ -107,13 +140,13 @@ const AddProject = () => {
           <div className="space-y-2">
             <label className="block text-sm font-medium">Select Students</label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {studentsList.map(student => (
+              {studentsList.map((student) => (
                 <label
                   key={student}
                   className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer ${
                     isDarkMode
-                      ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                      ? "bg-gray-700 hover:bg-gray-600 text-white"
+                      : "bg-gray-200 hover:bg-gray-300 text-gray-800"
                   }`}
                 >
                   <input
@@ -122,8 +155,8 @@ const AddProject = () => {
                     onChange={() => handleStudentSelect(student)}
                     className={`form-checkbox h-4 w-4 text-blue-500 rounded focus:ring-blue-500 ${
                       isDarkMode
-                        ? 'border-gray-600 bg-gray-700'
-                        : 'border-gray-300 bg-white'
+                        ? "border-gray-600 bg-gray-700"
+                        : "border-gray-300 bg-white"
                     }`}
                   />
                   <span>{student}</span>
@@ -134,14 +167,16 @@ const AddProject = () => {
 
           {/* Project Category */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium">Project Category</label>
+            <label className="block text-sm font-medium">
+              Project Category
+            </label>
             <select
               value={projectCategory}
               onChange={(e) => setProjectCategory(e.target.value)}
               className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                 isDarkMode
-                  ? 'bg-gray-700 border-gray-600 text-white'
-                  : 'bg-gray-50 border-gray-300 text-gray-800'
+                  ? "bg-gray-700 border-gray-600 text-white"
+                  : "bg-gray-50 border-gray-300 text-gray-800"
               }`}
             >
               <option value="">Select a category</option>
@@ -161,8 +196,8 @@ const AddProject = () => {
                 onChange={(e) => setStartDate(e.target.value)}
                 className={`w-full px-4 py-2 border rounded-md ${
                   isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white'
-                    : 'bg-gray-50 border-gray-300 text-gray-800'
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-50 border-gray-300 text-gray-800"
                 }`}
               />
             </div>
@@ -174,8 +209,8 @@ const AddProject = () => {
                 onChange={(e) => setEndDate(e.target.value)}
                 className={`w-full px-4 py-2 border rounded-md ${
                   isDarkMode
-                    ? 'bg-gray-700 border-gray-600 text-white'
-                    : 'bg-gray-50 border-gray-300 text-gray-800'
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-50 border-gray-300 text-gray-800"
                 }`}
               />
             </div>
@@ -189,8 +224,8 @@ const AddProject = () => {
               onChange={(e) => setProjectStatus(e.target.value)}
               className={`w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                 isDarkMode
-                  ? 'bg-gray-700 border-gray-600 text-white'
-                  : 'bg-gray-50 border-gray-300 text-gray-800'
+                  ? "bg-gray-700 border-gray-600 text-white"
+                  : "bg-gray-50 border-gray-300 text-gray-800"
               }`}
             >
               <option value="In Progress">In Progress</option>

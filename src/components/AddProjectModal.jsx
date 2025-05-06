@@ -73,10 +73,6 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
     };
 
     onAddProject(newProject);
-
-    setTimeout(() => {
-      onClose();
-    }, 1500);
   };
 
   if (!isOpen) return null;
