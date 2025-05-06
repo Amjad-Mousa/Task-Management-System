@@ -1,20 +1,20 @@
-import React, { useContext } from 'react';
-import PropTypes from 'prop-types';
-import { DarkModeContext } from '../../Context/DarkModeContext';
+import React, { useContext } from "react";
+import PropTypes from "prop-types";
+import { DarkModeContext } from "../../Context/DarkModeContext";
 
 /**
  * Reusable Input component with consistent styling
  */
 const Input = ({
-  type = 'text',
+  type = "text",
   label,
   name,
   value,
   onChange,
-  placeholder = '',
+  placeholder = "",
   required = false,
-  className = '',
-  error = '',
+  className = "",
+  error = "",
   disabled = false,
   ...props
 }) => {
@@ -23,19 +23,20 @@ const Input = ({
   // Base input classes
   const inputClasses = `
     w-full px-3 py-2 border rounded transition-colors
-    ${isDarkMode
-      ? 'bg-gray-700 text-white border-gray-600 focus:border-blue-500'
-      : 'bg-gray-50 text-gray-800 border-gray-300 focus:border-blue-600'
+    ${
+      isDarkMode
+        ? "bg-gray-700 text-white border-gray-600 focus:border-blue-500"
+        : "bg-gray-50 text-gray-800 border-gray-300 focus:border-blue-600"
     }
-    ${error ? 'border-red-500 dark:border-red-400' : ''}
-    ${disabled ? 'opacity-60 cursor-not-allowed' : ''}
+    ${error ? "border-red-500 dark:border-red-400" : ""}
+    ${disabled ? "opacity-60 cursor-not-allowed" : ""}
     ${className}
   `;
 
   // Label classes
   const labelClasses = `
     block mb-1 text-sm font-medium
-    ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}
+    ${isDarkMode ? "text-gray-300" : "text-gray-600"}
   `;
 
   return (

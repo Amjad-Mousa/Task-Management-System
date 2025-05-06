@@ -151,15 +151,15 @@ const TaskItem = ({ task, isSelected, onClick }) => {
   return (
     <li
       onClick={onClick}
-      className={`p-4 rounded-lg cursor-pointer shadow transition-transform hover:scale-105 border ${
-        isSelected ? "border-blue-500 border-2" : ""
+      className={`p-4 rounded-lg cursor-pointer shadow transition-transform hover:scale-105 border dark:border-gray-700 ${
+        isSelected ? "border-blue-500 dark:border-blue-400 border-2" : ""
       }`}
     >
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">{task.title}</h3>
         <StatusBadge status={task.status} />
       </div>
-      <div className="mt-2 text-sm">
+      <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
         <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
       </div>
     </li>
