@@ -12,6 +12,7 @@
   --red-accent-hover-light: #b91c1c;
   --sidebar-border-light: rgba(0, 0, 0, 0.1);
   --card-border-light: rgba(0, 0, 0, 0.1);
+  --dashboard-card-border-light: rgba(0, 0, 0, 0.15);
 
   /* Dark mode colors */
   --bg-dark: #1a202c;
@@ -25,6 +26,7 @@
   --red-accent-hover-dark: #b91c1c;
   --sidebar-border-dark: rgba(255, 255, 255, 0.1);
   --card-border-dark: rgba(255, 255, 255, 0.1);
+  --dashboard-card-border-dark: rgba(255, 255, 255, 0.15);
 }
 
 /* Base styles - Light mode by default */
@@ -145,14 +147,34 @@ aside {
 
 /* Focus states */
 *:focus {
-  outline: 2px solid var(--blue-accent-light);
-  outline-offset: 2px;
+  outline: 1px solid var(--blue-accent-light);
+  outline-offset: 1px;
 }
 
 .dark *:focus,
 .dark-mode *:focus {
-  outline: 2px solid var(--blue-accent-dark) !important;
-  outline-offset: 2px !important;
+  outline: 1px solid var(--blue-accent-dark) !important;
+  outline-offset: 1px !important;
+}
+
+/* Form input focus states - thinner outline for form fields */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 1px solid var(--blue-accent-light);
+  outline-offset: 0;
+  box-shadow: 0 0 0 1px var(--blue-accent-light);
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus,
+.dark-mode input:focus,
+.dark-mode select:focus,
+.dark-mode textarea:focus {
+  outline: 1px solid var(--blue-accent-dark) !important;
+  outline-offset: 0 !important;
+  box-shadow: 0 0 0 1px var(--blue-accent-dark) !important;
 }
 
 /* Shadows */
@@ -163,4 +185,31 @@ aside {
 .dark .shadow,
 .dark-mode .shadow {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Dashboard card styling */
+.dashboard-card {
+  border: 1px solid var(--dashboard-card-border-light);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .dashboard-card,
+.dark-mode .dashboard-card {
+  border: 1px solid var(--dashboard-card-border-dark);
+}
+
+/* Success message animation */
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.success-message {
+  animation: slideInUp 0.5s ease forwards;
 }

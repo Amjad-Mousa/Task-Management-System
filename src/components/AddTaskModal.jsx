@@ -72,7 +72,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
 
   return (
     <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
-      <div className={`w-full max-w-md p-6 rounded-lg shadow-xl ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'}`}>
+      <div className={`w-full max-w-xl p-8 rounded-lg shadow-xl ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'}`}>
         <div className="flex justify-between items-center mb-4">
           <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>Create New Task</h2>
           <button
@@ -85,7 +85,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="block text-sm font-medium">Project Title *</label>
             <select
