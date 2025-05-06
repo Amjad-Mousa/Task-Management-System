@@ -1,6 +1,6 @@
-import React, { useContext } from 'react';
-import PropTypes from 'prop-types';
-import { DarkModeContext } from '../../Context/DarkModeContext';
+import React, { useContext } from "react";
+import PropTypes from "prop-types";
+import { DarkModeContext } from "../../Context/DarkModeContext";
 
 /**
  * Reusable Card component with consistent styling
@@ -8,8 +8,8 @@ import { DarkModeContext } from '../../Context/DarkModeContext';
 const Card = ({
   children,
   title,
-  className = '',
-  padding = 'normal',
+  className = "",
+  padding = "normal",
   shadow = true,
   hover = false,
   ...props
@@ -18,19 +18,19 @@ const Card = ({
 
   // Padding classes
   const paddingClasses = {
-    none: '',
-    small: 'p-3',
-    normal: 'p-6',
-    large: 'p-8',
+    none: "",
+    small: "p-3",
+    normal: "p-6",
+    large: "p-8",
   };
 
   // Base card classes
   const cardClasses = `
     rounded-lg 
-    ${shadow ? 'shadow-lg' : ''}
+    ${shadow ? "shadow-lg" : ""}
     ${paddingClasses[padding]}
-    ${hover ? 'card-hover-effect' : ''}
-    ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'}
+    ${hover ? "card-hover-effect" : ""}
+    ${isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"}
     ${className}
   `;
 
@@ -38,7 +38,11 @@ const Card = ({
     <div className={cardClasses} {...props}>
       {title && (
         <div className="mb-4">
-          <h3 className={`text-xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+          <h3
+            className={`text-xl font-bold ${
+              isDarkMode ? "text-blue-400" : "text-blue-600"
+            }`}
+          >
             {title}
           </h3>
         </div>
@@ -52,7 +56,7 @@ Card.propTypes = {
   children: PropTypes.node.isRequired,
   title: PropTypes.string,
   className: PropTypes.string,
-  padding: PropTypes.oneOf(['none', 'small', 'normal', 'large']),
+  padding: PropTypes.oneOf(["none", "small", "normal", "large"]),
   shadow: PropTypes.bool,
   hover: PropTypes.bool,
 };

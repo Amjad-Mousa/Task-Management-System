@@ -1,7 +1,7 @@
-import React, { useContext, useEffect } from 'react';
-import PropTypes from 'prop-types';
-import { DarkModeContext } from '../../Context/DarkModeContext';
-import Card from './Card';
+import React, { useContext, useEffect } from "react";
+import PropTypes from "prop-types";
+import { DarkModeContext } from "../../Context/DarkModeContext";
+import Card from "./Card";
 
 /**
  * Reusable Modal component
@@ -11,29 +11,29 @@ const Modal = ({
   onClose,
   title,
   children,
-  size = 'md',
+  size = "md",
   showCloseButton = true,
-  className = '',
+  className = "",
 }) => {
   const { isDarkMode } = useContext(DarkModeContext);
 
   // Handle ESC key press to close modal
   useEffect(() => {
     const handleEscKey = (event) => {
-      if (event.key === 'Escape' && isOpen) {
+      if (event.key === "Escape" && isOpen) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('keydown', handleEscKey);
+      document.addEventListener("keydown", handleEscKey);
       // Prevent scrolling on the body when modal is open
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleEscKey);
-      document.body.style.overflow = 'auto';
+      document.removeEventListener("keydown", handleEscKey);
+      document.body.style.overflow = "auto";
     };
   }, [isOpen, onClose]);
 
@@ -42,22 +42,26 @@ const Modal = ({
 
   // Size classes
   const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-xl',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
-    full: 'max-w-full mx-4',
+    sm: "max-w-md",
+    md: "max-w-xl",
+    lg: "max-w-2xl",
+    xl: "max-w-4xl",
+    full: "max-w-full mx-4",
   };
 
   return (
     <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
-      <div 
+      <div
         className={`w-full ${sizeClasses[size]} ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         <Card padding="normal" shadow={true}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+            <h2
+              className={`text-2xl font-bold ${
+                isDarkMode ? "text-blue-400" : "text-blue-600"
+              }`}
+            >
               {title}
             </h2>
             {showCloseButton && (
@@ -83,9 +87,7 @@ const Modal = ({
               </button>
             )}
           </div>
-          <div className="max-h-[75vh] overflow-y-auto pr-2">
-            {children}
-          </div>
+          <div className="max-h-[75vh] overflow-y-auto pr-2">{children}</div>
         </Card>
       </div>
     </div>
@@ -97,7 +99,7 @@ Modal.propTypes = {
   onClose: PropTypes.func.isRequired,
   title: PropTypes.string.isRequired,
   children: PropTypes.node.isRequired,
-  size: PropTypes.oneOf(['sm', 'md', 'lg', 'xl', 'full']),
+  size: PropTypes.oneOf(["sm", "md", "lg", "xl", "full"]),
   showCloseButton: PropTypes.bool,
   className: PropTypes.string,
 };

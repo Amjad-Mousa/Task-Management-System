@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from 'react';
-import PropTypes from 'prop-types';
+import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 
 /**
  * Message component for displaying alerts, notifications, and feedback
  */
 const Message = ({
-  type = 'info',
+  type = "info",
   message,
   duration = 3000,
-  position = 'bottom',
+  position = "bottom",
   onClose,
   showIcon = true,
-  className = '',
+  className = "",
   isFixed = false,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -30,28 +30,28 @@ const Message = ({
 
   // Type-based styling
   const typeStyles = {
-    success: 'bg-green-600 text-white',
-    error: 'bg-red-600 text-white',
-    warning: 'bg-yellow-500 text-white',
-    info: 'bg-blue-600 text-white',
+    success: "bg-green-600 text-white",
+    error: "bg-red-600 text-white",
+    warning: "bg-yellow-500 text-white",
+    info: "bg-blue-600 text-white",
   };
 
   // Position classes
   const positionClasses = {
-    top: 'top-0 left-0 right-0',
-    bottom: 'bottom-0 left-0 right-0',
-    'top-right': 'top-4 right-4',
-    'top-left': 'top-4 left-4',
-    'bottom-right': 'bottom-4 right-4',
-    'bottom-left': 'bottom-4 left-4',
+    top: "top-0 left-0 right-0",
+    bottom: "bottom-0 left-0 right-0",
+    "top-right": "top-4 right-4",
+    "top-left": "top-4 left-4",
+    "bottom-right": "bottom-4 right-4",
+    "bottom-left": "bottom-4 left-4",
   };
 
   // Icons based on message type
   const icons = {
-    success: '✅',
-    error: '❌',
-    warning: '⚠️',
-    info: 'ℹ️',
+    success: "✅",
+    error: "❌",
+    warning: "⚠️",
+    info: "ℹ️",
   };
 
   if (!isVisible || !message) return null;
@@ -59,7 +59,7 @@ const Message = ({
   const messageClasses = `
     ${typeStyles[type]}
     ${positionClasses[position]}
-    ${isFixed ? 'fixed' : 'absolute'}
+    ${isFixed ? "fixed" : "absolute"}
     py-2 px-4 text-center z-50 success-message
     ${className}
   `;
@@ -75,10 +75,17 @@ const Message = ({
 };
 
 Message.propTypes = {
-  type: PropTypes.oneOf(['success', 'error', 'warning', 'info']),
+  type: PropTypes.oneOf(["success", "error", "warning", "info"]),
   message: PropTypes.string.isRequired,
   duration: PropTypes.number,
-  position: PropTypes.oneOf(['top', 'bottom', 'top-right', 'top-left', 'bottom-right', 'bottom-left']),
+  position: PropTypes.oneOf([
+    "top",
+    "bottom",
+    "top-right",
+    "top-left",
+    "bottom-right",
+    "bottom-left",
+  ]),
   onClose: PropTypes.func,
   showIcon: PropTypes.bool,
   className: PropTypes.string,
