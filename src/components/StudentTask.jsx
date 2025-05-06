@@ -1,37 +1,18 @@
-import { useEffect, useState, useContext } from "react";
-import { useLocation } from "react-router-dom";
-import { DarkModeContext } from "../Context/DarkModeContext";
-import DarkModeToggle from "./DarkModeToggle";
-import Sidebar from "./Sidebar";
+import { useEffect, useState } from "react";
+import { DashboardLayout } from "./layout";
+import { Card, Button, Select, StatusBadge } from "./ui";
 
+/**
+ * StudentTask component for student task management
+ */
 const StuTask = () => {
-  const { isDarkMode } = useContext(DarkModeContext);
-  const [username, setUsername] = useState("");
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [sortedTasks, setSortedTasks] = useState([]);
   const [sortBy, setSortBy] = useState("dueDate"); // Sorting by 'dueDate' or 'status'
 
-  const location = useLocation();
-
-  const isActive = (path) =>
-    location.pathname === path
-      ? "bg-blue-600 text-white"
-      : isDarkMode
-      ? "bg-gray-700"
-      : "bg-gray-200";
-
   useEffect(() => {
-    document.title = "Student Tasks";
-  }, []);
-
-  useEffect(() => {
-    const storedUser = JSON.parse(
-      localStorage.getItem("user") || sessionStorage.getItem("user")
-    );
-    if (storedUser?.username) {
-      setUsername(storedUser.username);
-    }
+    document.title = "Student Tasks | Task Manager";
   }, []);
 
   useEffect(() => {
@@ -65,19 +46,20 @@ const StuTask = () => {
     setSortedTasks(studentTasks); // Initialize sorted tasks
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("user");
-  };
-
   const handleSort = (sortBy) => {
     const sorted = [...tasks].sort((a, b) => {
       if (sortBy === "dueDate") {
         return new Date(a.dueDate) - new Date(b.dueDate);
       } else if (sortBy === "status") {
-        const statusOrder = ["Pending", "In Progress", "Completed"];
+        const statusOrder = [
+          "Not Started",
+          "Pending",
+          "In Progress",
+          "Completed",
+        ];
         return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
       }
+      return 0;
     });
 
     setSortBy(sortBy);
@@ -94,37 +76,27 @@ const StuTask = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900 text-black dark:text-white">
-      <Sidebar role="student" username={username} />
-
-      {/* Main Content */}
-      <main className="flex-1 p-6 relative">
-        {/* Dark Mode Toggle */}
-        <div className="absolute top-4 right-4">
-          <DarkModeToggle />
+    <DashboardLayout role="student" title="Your Tasks">
+      {/* Sort Options */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          <Select
+            name="sortBy"
+            value={sortBy}
+            onChange={(e) => handleSort(e.target.value)}
+            options={[
+              { value: "dueDate", label: "Sort by Due Date" },
+              { value: "status", label: "Sort by Status" },
+            ]}
+            className="w-64"
+          />
         </div>
+      </div>
 
-        <header className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Your Tasks</h1>
-        </header>
-
-        {/* Sort Options */}
-        <div className="mb-4">
-          <div className="flex items-center gap-2">
-            <select
-              value={sortBy}
-              onChange={(e) => handleSort(e.target.value)}
-              className="ml-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-md"
-            >
-              <option value="dueDate">Sort by Due Date</option>
-              <option value="status">Sort by Status</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Tasks Section */}
-        <section className="w-full max-w-3xl mx-auto">
-          <h2 className="text-2xl font-semibold mb-4">Your Tasks</h2>
+      {/* Tasks Section */}
+      <div className="flex flex-col items-center">
+        <Card className="w-full max-w-3xl mb-6">
+          <h2 className="text-xl font-semibold mb-4">Task List</h2>
           {sortedTasks.length === 0 ? (
             <p className="text-center text-gray-600 dark:text-gray-400">
               No tasks available.
@@ -132,57 +104,65 @@ const StuTask = () => {
           ) : (
             <ul className="space-y-4">
               {sortedTasks.map((task) => (
-                <li
+                <TaskItem
                   key={task.id}
+                  task={task}
+                  isSelected={task.id === selectedTask?.id}
                   onClick={() => handleTaskClick(task.id)}
-                  className={`p-4 rounded-lg cursor-pointer shadow transition-transform hover:scale-105 ${
-                    task.id === selectedTask?.id
-                      ? "bg-blue-600 text-white"
-                      : task.status === "Completed"
-                      ? "bg-green-600 text-white"
-                      : task.status === "In Progress"
-                      ? "bg-yellow-500 text-white"
-                      : task.status === "Pending"
-                      ? "bg-gray-500 text-white"
-                      : "bg-red-600 text-white" // Not Started
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-bold">{task.title}</h3>
-                    <span className="text-sm italic">{task.status}</span>
-                  </div>
-                </li>
+                />
               ))}
             </ul>
           )}
-        </section>
+        </Card>
 
         {/* Task Details Section */}
         {selectedTask && (
-          <section className="mt-6 p-6 bg-gray-200 dark:bg-gray-800 rounded-lg shadow-lg">
-            <h3 className="text-2xl font-semibold mb-4">Task Details</h3>
-            <div>
-              <p className="text-lg">
+          <Card className="w-full max-w-3xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">Task Details</h3>
+              <Button variant="danger" size="sm" onClick={handleCloseDetails}>
+                Close
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <p>
                 <strong>Title:</strong> {selectedTask.title}
               </p>
-              <p className="text-lg">
-                <strong>Status:</strong> {selectedTask.status}
+              <p>
+                <strong>Status:</strong>{" "}
+                <StatusBadge status={selectedTask.status} />
               </p>
-              <p className="text-lg">
+              <p>
                 <strong>Due Date:</strong>{" "}
                 {new Date(selectedTask.dueDate).toLocaleDateString()}
               </p>
             </div>
-            <button
-              onClick={handleCloseDetails}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md"
-            >
-              Close Details
-            </button>
-          </section>
+          </Card>
         )}
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+/**
+ * TaskItem component for displaying a task in the list
+ */
+const TaskItem = ({ task, isSelected, onClick }) => {
+  return (
+    <li
+      onClick={onClick}
+      className={`p-4 rounded-lg cursor-pointer shadow transition-transform hover:scale-105 border ${
+        isSelected ? "border-blue-500 border-2" : ""
+      }`}
+    >
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">{task.title}</h3>
+        <StatusBadge status={task.status} />
+      </div>
+      <div className="mt-2 text-sm">
+        <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+      </div>
+    </li>
   );
 };
 
