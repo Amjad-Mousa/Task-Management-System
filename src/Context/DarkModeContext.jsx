@@ -1,25 +1,34 @@
 import React, { createContext, useState, useEffect } from 'react';
 
-// 1. إنشاء الـ Context
 export const DarkModeContext = createContext();
 
 export const DarkModeProvider = ({ children }) => {
-  // 2. الحالة الخاصة بالـ Dark Mode
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  // 3. قراءة القيمة المخزنة في الـ localStorage عند أول تحميل
+  // Load saved preference from localStorage first
   useEffect(() => {
     const storedTheme = localStorage.getItem('darkMode');
-    if (storedTheme) {
+    if (storedTheme !== null) {
       setIsDarkMode(storedTheme === 'true');
     }
   }, []);
 
-  // 4. تغيير حالة الـ Dark Mode وتخزينها في الـ localStorage
+  // Apply dark mode class to HTML element
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark-mode');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark-mode');
+    }
+    console.log('Dark mode changed:', isDarkMode);
+  }, [isDarkMode]);
+
   const toggleDarkMode = () => {
     setIsDarkMode(prevMode => {
       const newMode = !prevMode;
-      localStorage.setItem('darkMode', newMode);
+      localStorage.setItem('darkMode', String(newMode));
       return newMode;
     });
   };
