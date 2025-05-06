@@ -168,6 +168,8 @@ const Projects = () => {
                         ? "bg-green-600"
                         : project.progress > 50
                         ? "bg-yellow-500"
+                        : project.status === "Pending"
+                        ? "bg-gray-500"
                         : "bg-red-600"
                     }`}
                   >
@@ -175,6 +177,8 @@ const Projects = () => {
                       ? "Complete"
                       : project.progress > 50
                       ? "In Progress"
+                      : project.status === "Pending"
+                      ? "Pending"
                       : "Not Started"}
                   </p>
                 </div>
@@ -263,6 +267,8 @@ const Projects = () => {
                           ? "bg-green-600"
                           : selectedProject.progress > 50
                           ? "bg-yellow-500"
+                          : selectedProject.status === "Pending"
+                          ? "bg-gray-500"
                           : "bg-red-600"
                       }`}
                     >
@@ -270,6 +276,8 @@ const Projects = () => {
                         ? "Complete"
                         : selectedProject.progress > 50
                         ? "In Progress"
+                        : selectedProject.status === "Pending"
+                        ? "Pending"
                         : "Not Started"}
                     </p>
                   </div>

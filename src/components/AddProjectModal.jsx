@@ -11,7 +11,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   const [projectCategory, setProjectCategory] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [projectStatus, setProjectStatus] = useState("In Progress");
+  const [projectStatus, setProjectStatus] = useState("Not Started");
   const [errorMessage, setErrorMessage] = useState("");
 
   const studentsList = [
@@ -31,7 +31,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
       setProjectCategory("");
       setStartDate("");
       setEndDate("");
-      setProjectStatus("In Progress");
+      setProjectStatus("Not Started");
       setErrorMessage("");
     }
   }, [isOpen]);
@@ -59,6 +59,18 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
       return;
     }
 
+    // Set progress based on status
+    let progressValue = 0;
+    if (projectStatus === "Completed") {
+      progressValue = 100; // Green progress bar
+    } else if (projectStatus === "In Progress") {
+      progressValue = 60; // Yellow progress bar (> 50)
+    } else if (projectStatus === "Pending") {
+      progressValue = 25; // Gray progress bar (special case in Projects.jsx)
+    } else if (projectStatus === "Not Started") {
+      progressValue = 0; // Red progress bar
+    }
+
     const newProject = {
       id: generateId(),
       title: projectTitle,
@@ -68,7 +80,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
       startDate,
       endDate,
       status: projectStatus,
-      progress: 0,
+      progress: progressValue,
       tasks: [],
     };
 
@@ -252,9 +264,10 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
                   : "bg-gray-50 border-gray-300 text-gray-800"
               }`}
             >
+              <option value="Not Started">Not Started</option>
               <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
               <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
             </select>
           </div>
 

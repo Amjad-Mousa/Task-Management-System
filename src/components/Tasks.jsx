@@ -1,5 +1,4 @@
 import { useEffect, useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
 import DarkModeToggle from "./DarkModeToggle";
 import Sidebar from "./Sidebar";
 import AddTaskModal from "./AddTaskModal";
@@ -57,6 +56,25 @@ const Tasks = () => {
               status: "Completed",
               dueDate: "1/16/2023",
             },
+            {
+              id: 3,
+              project: "Mobile App Development",
+              taskName: "Create Wireframes",
+              description: "Design initial wireframes for the mobile app.",
+              assignedStudent: "Ibn Al-Jawzee",
+              status: "Not Started",
+              dueDate: "5/15/2023",
+            },
+            {
+              id: 4,
+              project: "E-commerce Platform",
+              taskName: "Database Design",
+              description:
+                "Create database schema for the e-commerce platform.",
+              assignedStudent: "Ayman Oulom",
+              status: "Pending",
+              dueDate: "3/30/2023",
+            },
           ]
         : [
             {
@@ -77,11 +95,13 @@ const Tasks = () => {
     const normalizedStatus = status.toLowerCase().replace(" ", "");
     switch (normalizedStatus) {
       case "completed":
-        return "bg-green-500";
+        return "bg-green-600"; // Green for Completed
       case "inprogress":
-        return "bg-yellow-500";
+        return "bg-yellow-500"; // Yellow for In Progress
       case "pending":
+        return "bg-gray-500"; // Gray for Pending
       case "notstarted":
+        return "bg-red-600"; // Red for Not Started
       default:
         return "bg-gray-500";
     }
@@ -337,16 +357,16 @@ const Tasks = () => {
               </p>
               <div className="mt-4 flex justify-center gap-4">
                 <button
-                  onClick={removeTask}
-                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 btn-hover-effect font-medium"
-                >
-                  Yes, Remove
-                </button>
-                <button
                   onClick={() => setTaskToRemove(null)}
                   className="bg-gray-300 dark:bg-gray-700 text-black dark:text-white px-4 py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-600 btn-hover-effect font-medium"
                 >
                   Cancel
+                </button>
+                <button
+                  onClick={removeTask}
+                  className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 btn-hover-effect font-medium"
+                >
+                  Yes, Remove
                 </button>
               </div>
             </div>

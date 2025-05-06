@@ -20,7 +20,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
     taskName: "",
     description: "",
     assignedStudent: "",
-    status: "",
+    status: "notStarted", // Default to Not Started
     dueDate: "",
   });
 
@@ -34,7 +34,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
         taskName: "",
         description: "",
         assignedStudent: "",
-        status: "",
+        status: "notStarted", // Default to Not Started
         dueDate: "",
       });
       setMessage({ text: "", color: "red" });
@@ -217,6 +217,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
               <option value="">Select status</option>
               <option value="notStarted">Not Started</option>
               <option value="inProgress">In Progress</option>
+              <option value="pending">Pending</option>
               <option value="completed">Completed</option>
             </select>
           </div>
