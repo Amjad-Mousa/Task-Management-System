@@ -134,10 +134,10 @@ const Tasks = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900 text-black dark:text-white">
+    <div className={`flex h-screen ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-100 text-gray-800'}`}>
       <Sidebar role="admin" username={username} />
 
-      <main className="flex-1 p-6 relative overflow-y-auto">
+      <main className={`flex-1 p-6 relative overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className="absolute top-4 right-4 flex gap-2">
           <button
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 btn-hover-effect tooltip flex items-center gap-2"
@@ -240,8 +240,8 @@ const Tasks = () => {
 
         {/* Confirm remove task modal */}
         {taskToRemove && (
-          <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg text-center">
+          <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex justify-center items-center z-50">
+            <div className={`p-6 rounded-lg shadow-lg text-center ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'}`}>
               <p className="text-lg">Are you sure you want to remove this task?</p>
               <div className="mt-4 flex justify-center gap-4">
                 <button

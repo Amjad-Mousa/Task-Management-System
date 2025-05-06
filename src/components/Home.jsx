@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import DashboardChart from './DashboardChart';
 import DarkModeToggle from './DarkModeToggle';
 import Sidebar from './Sidebar';
+import { DarkModeContext } from '../Context/DarkModeContext';
 
 const Home = () => {
+  const { isDarkMode } = useContext(DarkModeContext);
   const [datetime, setDatetime] = useState('');
   const [username, setUsername] = useState('');
 
@@ -50,13 +52,13 @@ const Home = () => {
 
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900 text-black dark:text-white">
+    <div className={`flex h-screen ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-100 text-gray-800'}`}>
       {/* Sidebar */}
       <Sidebar role="admin" username={username} />
 
       {/* Main Content */}
-      <main className="flex-1 p-6 relative overflow-y-auto">
-        <div className="absolute top-4 right-4">
+      <main className={`flex-1 p-6 relative overflow-y-auto ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className="absolute top-4 right-4 flex gap-2">
           <DarkModeToggle />
         </div>
 
