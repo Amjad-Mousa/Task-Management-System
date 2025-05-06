@@ -3,9 +3,9 @@ import { DashboardLayout } from "./layout";
 import { Card, StatusBadge } from "./ui";
 
 /**
- * StuHome component for student dashboard
+ * StudentHome component for student dashboard
  */
-const StuHome = () => {
+const StudentHome = () => {
   const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
@@ -89,4 +89,4 @@ const TaskItem = ({ task }) => {
   );
 };
 
-export default StuHome;
+export default StudentHome;
