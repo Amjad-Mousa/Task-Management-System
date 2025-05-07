@@ -2,6 +2,13 @@ import { useState, useEffect, useContext } from "react";
 import { DarkModeContext } from "../../Context/DarkModeContext";
 import { DashboardLayout } from "../layout";
 import AddProjectModal from "../AddProjectModal";
+import {
+  getStatusColor,
+  sortItems,
+  getSearchInputClasses,
+  getStatusFromProgress,
+  SUCCESS_MESSAGE_TIMEOUT,
+} from "../../utils/adminUtils";
 
 const AdminProjects = () => {
   const { isDarkMode } = useContext(DarkModeContext);
@@ -52,25 +59,8 @@ const AdminProjects = () => {
           ))
       );
     })
-    .sort((a, b) => {
-      // Handle different data types for sorting
-      if (sortConfig.key === "progress") {
-        // Sort by progress (numeric)
-        const aValue = a.progress || 0;
-        const bValue = b.progress || 0;
-        return sortConfig.direction === "asc"
-          ? aValue - bValue
-          : bValue - aValue;
-      } else {
-        // Sort by string values (title, category, etc.)
-        const aValue = a[sortConfig.key] || "";
-        const bValue = b[sortConfig.key] || "";
-
-        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
-      }
-    });
+    // Use the shared utility function for sorting
+    .sort((a, b) => (sortItems([a, b], sortConfig)[0] === a ? -1 : 1));
 
   const confirmDeleteProject = (id) => {
     const updatedProjects = projects.filter((project) => project.id !== id);
@@ -78,7 +68,7 @@ const AdminProjects = () => {
     localStorage.setItem("projects", JSON.stringify(updatedProjects));
     setDeleteMessage("Project deleted successfully!");
     setProjectToDelete(null);
-    setTimeout(() => setDeleteMessage(null), 2000);
+    setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
 
   const handleAddProject = (newProject) => {
@@ -87,7 +77,7 @@ const AdminProjects = () => {
     localStorage.setItem("projects", JSON.stringify(updatedProjects));
     setDeleteMessage("Project added successfully!");
     setIsAddProjectModalOpen(false);
-    setTimeout(() => setDeleteMessage(null), 2000);
+    setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
 
   return (
@@ -101,11 +91,7 @@ const AdminProjects = () => {
           <input
             type="text"
             placeholder="Search projects (title, category, students)..."
-            className={`px-4 py-2 rounded-lg w-full md:w-96 ${
-              isDarkMode
-                ? "bg-gray-800 text-white border-gray-700"
-                : "bg-white text-gray-800 border border-gray-300"
-            }`}
+            className={getSearchInputClasses(isDarkMode) + " w-full md:w-96"}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -156,7 +142,7 @@ const AdminProjects = () => {
         }`}
       >
         <div
-          className="cursor-pointer flex items-center gap-1 font-medium"
+          className="cursor-pointer flex items-center gap-1 font-medium justify-start"
           onClick={() => sortProjects("title")}
         >
           Title
@@ -165,7 +151,7 @@ const AdminProjects = () => {
           )}
         </div>
         <div
-          className="cursor-pointer flex items-center gap-1 font-medium"
+          className="cursor-pointer flex items-center gap-1 font-medium justify-center"
           onClick={() => sortProjects("category")}
         >
           Category
@@ -174,7 +160,7 @@ const AdminProjects = () => {
           )}
         </div>
         <div
-          className="cursor-pointer flex items-center gap-1 font-medium"
+          className="cursor-pointer flex items-center gap-1 font-medium justify-end"
           onClick={() => sortProjects("progress")}
         >
           Progress
@@ -220,31 +206,12 @@ const AdminProjects = () => {
               <div className="space-y-2">
                 <p className="font-semibold">Progress:</p>
                 <p
-                  className={`px-4 py-2 rounded-lg text-white w-full text-center ${
-                    project.progress === 100
-                      ? isDarkMode
-                        ? "bg-green-900/30 text-green-300"
-                        : "bg-green-600"
-                      : project.progress > 50
-                      ? isDarkMode
-                        ? "bg-yellow-900/30 text-yellow-300"
-                        : "bg-yellow-500"
-                      : project.status === "Pending"
-                      ? isDarkMode
-                        ? "bg-gray-700/30 text-gray-300"
-                        : "bg-gray-500"
-                      : isDarkMode
-                      ? "bg-red-900/30 text-red-300"
-                      : "bg-red-600"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-white w-full text-center ${getStatusColor(
+                    getStatusFromProgress(project.progress, project.status),
+                    isDarkMode
+                  )}`}
                 >
-                  {project.progress === 100
-                    ? "Complete"
-                    : project.progress > 50
-                    ? "In Progress"
-                    : project.status === "Pending"
-                    ? "Pending"
-                    : "Not Started"}
+                  {getStatusFromProgress(project.progress, project.status)}
                 </p>
               </div>
             </div>
@@ -327,31 +294,18 @@ const AdminProjects = () => {
                 <div className="col-span-1 md:col-span-2">
                   <h4 className="font-semibold mb-2">Progress</h4>
                   <p
-                    className={`px-4 py-2 rounded-lg text-white w-full text-center ${
-                      selectedProject.progress === 100
-                        ? isDarkMode
-                          ? "bg-green-900/30 text-green-300"
-                          : "bg-green-600"
-                        : selectedProject.progress > 50
-                        ? isDarkMode
-                          ? "bg-yellow-900/30 text-yellow-300"
-                          : "bg-yellow-500"
-                        : selectedProject.status === "Pending"
-                        ? isDarkMode
-                          ? "bg-gray-700/30 text-gray-300"
-                          : "bg-gray-500"
-                        : isDarkMode
-                        ? "bg-red-900/30 text-red-300"
-                        : "bg-red-600"
-                    }`}
+                    className={`px-4 py-2 rounded-lg text-white w-full text-center ${getStatusColor(
+                      getStatusFromProgress(
+                        selectedProject.progress,
+                        selectedProject.status
+                      ),
+                      isDarkMode
+                    )}`}
                   >
-                    {selectedProject.progress === 100
-                      ? "Complete"
-                      : selectedProject.progress > 50
-                      ? "In Progress"
-                      : selectedProject.status === "Pending"
-                      ? "Pending"
-                      : "Not Started"}
+                    {getStatusFromProgress(
+                      selectedProject.progress,
+                      selectedProject.status
+                    )}
                   </p>
                 </div>
               </div>

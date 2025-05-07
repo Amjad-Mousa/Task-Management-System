@@ -2,6 +2,12 @@ import { useEffect, useState, useContext } from "react";
 import { DarkModeContext } from "../../Context/DarkModeContext";
 import { DashboardLayout } from "../layout";
 import AddTaskModal from "../AddTaskModal";
+import {
+  getStatusColor,
+  sortItems,
+  getSearchInputClasses,
+  SUCCESS_MESSAGE_TIMEOUT,
+} from "../../utils/adminUtils";
 
 const AdminTasks = () => {
   const { isDarkMode } = useContext(DarkModeContext);
@@ -10,7 +16,7 @@ const AdminTasks = () => {
     key: "project",
     direction: "asc",
   });
-  const [sortBy, setSortBy] = useState("project");
+  const [searchQuery, setSearchQuery] = useState("");
   const [taskToRemove, setTaskToRemove] = useState(null);
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -63,25 +69,7 @@ const AdminTasks = () => {
     setTasks([...defaultTasks, ...storedTasks]);
   }, []);
 
-  const getStatusColor = (status) => {
-    const normalizedStatus = status.toLowerCase().replace(" ", "");
-    const { isDarkMode } = useContext(DarkModeContext);
-
-    switch (normalizedStatus) {
-      case "completed":
-        return isDarkMode ? "bg-green-900/30 text-green-300" : "bg-green-600"; // Green for Completed
-      case "inprogress":
-        return isDarkMode
-          ? "bg-yellow-900/30 text-yellow-300"
-          : "bg-yellow-500"; // Yellow for In Progress
-      case "pending":
-        return isDarkMode ? "bg-gray-700/30 text-gray-300" : "bg-gray-500"; // Gray for Pending
-      case "notstarted":
-        return isDarkMode ? "bg-red-900/30 text-red-300" : "bg-red-600"; // Red for Not Started
-      default:
-        return isDarkMode ? "bg-gray-700/30 text-gray-300" : "bg-gray-500";
-    }
-  };
+  // Using the shared utility function for status colors
 
   const sortTasks = (key) => {
     let direction = "asc";
@@ -90,17 +78,9 @@ const AdminTasks = () => {
     }
     setSortConfig({ key, direction });
 
-    const sortedTasks = [...tasks].sort((a, b) => {
-      if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
-      if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
-      return 0;
-    });
+    // Use the shared utility function for sorting
+    const sortedTasks = sortItems(tasks, { key, direction });
     setTasks(sortedTasks);
-  };
-
-  const handleSortByChange = (event) => {
-    setSortBy(event.target.value);
-    sortTasks(event.target.value);
   };
 
   const removeTask = () => {
@@ -109,7 +89,7 @@ const AdminTasks = () => {
     );
     setTaskToRemove(null);
     setSuccessMessage("Task removed successfully!");
-    setTimeout(() => setSuccessMessage(null), 3000);
+    setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
 
   const handleAddTask = (newTask) => {
@@ -120,7 +100,7 @@ const AdminTasks = () => {
     localStorage.setItem("tasks", JSON.stringify([...existingTasks, newTask]));
 
     setSuccessMessage("Task added successfully!");
-    setTimeout(() => setSuccessMessage(null), 3000);
+    setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
 
   return (
@@ -129,26 +109,26 @@ const AdminTasks = () => {
       title="Tasks Overview"
       successMessage={successMessage}
     >
-      <div className="flex justify-between items-center mb-4">
-        <div>
-          <label
-            htmlFor="sortBy"
-            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+        <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4">
+          <div className="w-full md:w-96">
+            <input
+              type="text"
+              placeholder="Search by task, project, or assigned student..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={getSearchInputClasses(isDarkMode)}
+            />
+          </div>
+
+          <p
+            className={`text-sm ${
+              isDarkMode ? "text-gray-400" : "text-gray-600"
+            }`}
           >
-            Sort By:
-          </label>
-          <select
-            id="sortBy"
-            value={sortBy}
-            onChange={handleSortByChange}
-            className="ml-2 p-2 bg-gray-200 dark:bg-gray-700 text-black dark:text-white rounded border border-gray-300 dark:border-gray-600 input-focus-effect cursor-pointer"
-          >
-            <option value="project">Project</option>
-            <option value="taskName">Task</option>
-            <option value="assignedStudent">Assigned To</option>
-            <option value="status">Status</option>
-            <option value="dueDate">Due Date</option>
-          </select>
+            <span className="mr-1">💡</span>
+            Click on table headers to sort tasks
+          </p>
         </div>
 
         <button
@@ -180,40 +160,54 @@ const AdminTasks = () => {
           >
             <tr>
               {[
-                "Project",
-                "Task",
-                "Description",
-                "Assigned To",
-                "Status",
-                "Due Date",
-                "Actions",
+                { display: "Project", key: "project" },
+                { display: "Task", key: "taskName" },
+                { display: "Description", key: "description" },
+                { display: "Assigned To", key: "assignedStudent" },
+                { display: "Status", key: "status" },
+                { display: "Due Date", key: "dueDate" },
+                { display: "Actions", key: null },
               ].map((header) => (
                 <th
-                  key={header}
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider cursor-pointer transition-colors duration-150 tooltip ${
+                  key={header.display}
+                  className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                    header.key ? "cursor-pointer" : ""
+                  } transition-colors duration-150 tooltip ${
                     isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-200"
                   }`}
-                  onClick={() =>
-                    sortTasks(header.toLowerCase().replace(" ", ""))
-                  }
-                  data-tooltip={`Sort by ${header}`}
+                  onClick={() => header.key && sortTasks(header.key)}
+                  data-tooltip={header.key ? `Sort by ${header.display}` : ""}
                 >
                   <div className="flex items-center gap-1">
-                    {header}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 opacity-50"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-                      />
-                    </svg>
+                    {header.display}
+                    {header.key && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={`h-4 w-4 ${
+                          sortConfig.key === header.key
+                            ? "opacity-100"
+                            : "opacity-50"
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d={
+                            sortConfig.key === header.key &&
+                            sortConfig.direction === "desc"
+                              ? "M7 16V4m0 0L3 8m4-4l4 4"
+                              : sortConfig.key === header.key &&
+                                sortConfig.direction === "asc"
+                              ? "M7 4v12m0 0l4-4m-4 4l-4-4"
+                              : "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                          }
+                        />
+                      </svg>
+                    )}
                   </div>
                 </th>
               ))}
@@ -226,74 +220,106 @@ const AdminTasks = () => {
                 : "bg-white divide-gray-200"
             }`}
           >
-            {tasks.map((task) => (
-              <tr
-                key={task.id}
-                className="table-row-hover transition-colors duration-150"
-              >
-                <td
-                  className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                    isDarkMode ? "text-white" : "text-gray-900"
-                  }`}
+            {(() => {
+              const filteredTasks = tasks.filter((task) => {
+                if (!searchQuery.trim()) return true;
+
+                const query = searchQuery.toLowerCase().trim();
+                return (
+                  (task.project &&
+                    task.project.toLowerCase().includes(query)) ||
+                  (task.taskName &&
+                    task.taskName.toLowerCase().includes(query)) ||
+                  (task.assignedStudent &&
+                    task.assignedStudent.toLowerCase().includes(query))
+                );
+              });
+
+              if (filteredTasks.length === 0) {
+                return (
+                  <tr>
+                    <td
+                      colSpan="7"
+                      className={`px-6 py-8 text-center text-sm ${
+                        isDarkMode ? "text-gray-400" : "text-gray-500"
+                      }`}
+                    >
+                      No tasks found matching "{searchQuery}"
+                    </td>
+                  </tr>
+                );
+              }
+
+              return filteredTasks.map((task) => (
+                <tr
+                  key={task.id}
+                  className="table-row-hover transition-colors duration-150"
                 >
-                  {task.project}
-                </td>
-                <td
-                  className={`px-6 py-4 whitespace-nowrap text-sm ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  {task.taskName}
-                </td>
-                <td
-                  className={`px-6 py-4 whitespace-nowrap text-sm ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  {task.description}
-                </td>
-                <td
-                  className={`px-6 py-4 whitespace-nowrap text-sm ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  {task.assignedStudent}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`inline-block px-3 py-1 text-sm font-semibold rounded-full w-28 text-center ${getStatusColor(
-                      task.status
-                    )}`}
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                      isDarkMode ? "text-white" : "text-gray-900"
+                    }`}
                   >
-                    {task.status}
-                  </span>
-                </td>
-                <td
-                  className={`px-6 py-4 whitespace-nowrap text-sm ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  {task.dueDate}
-                </td>
-                <td
-                  className={`px-6 py-4 whitespace-nowrap text-sm ${
-                    isDarkMode ? "text-gray-300" : "text-gray-700"
-                  }`}
-                >
-                  <button
-                    onClick={() => setTaskToRemove(task.id)}
-                    className={`px-3 py-1 rounded tooltip ${
-                      isDarkMode
-                        ? "bg-gray-700 hover:bg-gray-600 text-red-300"
-                        : "bg-gray-200 hover:bg-gray-300 text-red-600"
-                    } btn-hover-effect`}
-                    data-tooltip="Remove this task"
+                    {task.project}
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
                   >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))}
+                    {task.taskName}
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    {task.description}
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    {task.assignedStudent}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-block px-3 py-1 text-sm font-semibold rounded-full w-28 text-center ${getStatusColor(
+                        task.status,
+                        isDarkMode
+                      )}`}
+                    >
+                      {task.status}
+                    </span>
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    {task.dueDate}
+                  </td>
+                  <td
+                    className={`px-6 py-4 whitespace-nowrap text-sm ${
+                      isDarkMode ? "text-gray-300" : "text-gray-700"
+                    }`}
+                  >
+                    <button
+                      onClick={() => setTaskToRemove(task.id)}
+                      className={`px-3 py-1 rounded tooltip ${
+                        isDarkMode
+                          ? "bg-gray-700 hover:bg-gray-600 text-red-300"
+                          : "bg-gray-200 hover:bg-gray-300 text-red-600"
+                      } btn-hover-effect`}
+                      data-tooltip="Remove this task"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ));
+            })()}
           </tbody>
         </table>
       </div>
