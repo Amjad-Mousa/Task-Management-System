@@ -7,11 +7,16 @@ const DarkModeToggle = () => {
   return (
     <button
       onClick={toggleDarkMode}
-      className="flex items-center justify-center p-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200 btn-hover-effect tooltip focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-blue-400 dark:focus:ring-offset-gray-800"
+      className={`flex items-center justify-center p-2 rounded-md transition-all duration-200 btn-hover-effect tooltip focus:outline-none focus:ring-2 ${
+        isDarkMode
+          ? 'bg-gray-700 hover:bg-gray-600 focus:ring-blue-400 focus:ring-offset-gray-800'
+          : 'bg-gray-200 hover:bg-gray-300 focus:ring-blue-500 focus:ring-offset-2'
+      }`}
       data-tooltip={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
       aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
     >
       {isDarkMode ? (
+        // Sun icon for dark mode (switch to light)
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="h-5 w-5 text-yellow-300"
@@ -25,6 +30,7 @@ const DarkModeToggle = () => {
           />
         </svg>
       ) : (
+        // Moon icon for light mode (switch to dark)
         <svg
           xmlns="http://www.w3.org/2000/svg"
           className="h-5 w-5 text-blue-700"

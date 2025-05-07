@@ -22,6 +22,10 @@ export const DarkModeProvider = ({ children }) => {
       document.documentElement.classList.remove('dark');
       document.body.classList.remove('dark-mode');
     }
+
+    // Force a repaint to ensure all styles are applied correctly
+    document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+
     console.log('Dark mode changed:', isDarkMode);
   }, [isDarkMode]);
 

@@ -1,20 +1,36 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
+import AuthLayout from "./layout/AuthLayout";
+import Input from "./ui/Input";
+import Button from "./ui/Button";
+import useForm from "../hooks/useForm";
+import useAuth from "../hooks/useAuth";
 
+/**
+ * SignIn component for user authentication
+ */
 export default function SignIn() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [staySignedIn, setStaySignedIn] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
+  const { signIn } = useAuth();
 
-  const navigate = useNavigate(); 
-
+  // Set page title
   useEffect(() => {
-    document.title = "Sign In - Task Manager "; 
+    document.title = "Sign In - Task Manager";
   }, []);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // Initialize form with useForm hook
+  const { values, handleChange, handleSubmit } = useForm(
+    {
+      username: "",
+      password: "",
+      staySignedIn: false,
+    },
+    null, // No validation function for now
+    onSubmit // Submit handler
+  );
+
+  // Form submission handler
+  function onSubmit(formData) {
     setMessage({ text: "", type: "" });
 
     const fakeStudent = { username: "student", password: "student123" };
@@ -22,77 +38,82 @@ export default function SignIn() {
 
     let user = null;
 
-    if (username === fakeStudent.username && password === fakeStudent.password) {
-      user = { role: "student", username };
+    if (
+      formData.username === fakeStudent.username &&
+      formData.password === fakeStudent.password
+    ) {
+      user = { role: "student", username: formData.username, isStudent: true };
       setMessage({ text: "Sign In Successful!", type: "success" });
+
+      // Sign in with the useAuth hook
       setTimeout(() => {
-        navigate("/stu-home"); // Navigate after timeout
+        signIn(user, formData.staySignedIn);
       }, 1500);
-    } else if (username === fakeAdmin.username && password === fakeAdmin.password) {
-      user = { role: "admin", username };
+    } else if (
+      formData.username === fakeAdmin.username &&
+      formData.password === fakeAdmin.password
+    ) {
+      user = { role: "admin", username: formData.username, isStudent: false };
       setMessage({ text: "Sign In Successful!", type: "success" });
+
+      // Sign in with the useAuth hook
       setTimeout(() => {
-        navigate("/home"); // Navigate after timeout
+        signIn(user, formData.staySignedIn);
       }, 1500);
     } else {
       setMessage({ text: "Invalid username or password.", type: "error" });
-      return;
     }
-
-    const storage = staySignedIn ? localStorage : sessionStorage;
-    storage.setItem("user", JSON.stringify(user)); // Store user data
-  };
+  }
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-900 text-white">
-      <div className="bg-gray-800 p-6 rounded-lg shadow-lg w-80 text-center">
-        <h1 className="text-2xl mb-5 font-bold">Sign In</h1>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4 text-left">
-            <label className="block mb-1 text-sm text-gray-300">Username</label>
+    <AuthLayout
+      title="Sign In"
+      message={message.text}
+      messageType={message.type}
+    >
+      <form onSubmit={handleSubmit}>
+        <Input
+          type="text"
+          label="Username"
+          name="username"
+          value={values.username}
+          onChange={handleChange}
+          required
+        />
+
+        <Input
+          type="password"
+          label="Password"
+          name="password"
+          value={values.password}
+          onChange={handleChange}
+          required
+        />
+
+        <div className="mb-4 text-left">
+          <label className="text-sm flex items-center">
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded"
-              required
+              type="checkbox"
+              name="staySignedIn"
+              checked={values.staySignedIn}
+              onChange={handleChange}
+              className="mr-2"
             />
-          </div>
-          <div className="mb-4 text-left">
-            <label className="block mb-1 text-sm text-gray-300">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 text-white border border-gray-600 rounded"
-              required
-            />
-          </div>
-          <div className="mb-4 text-left">
-            <label className="text-sm text-gray-300">
-              <input
-                type="checkbox"
-                checked={staySignedIn}
-                onChange={(e) => setStaySignedIn(e.target.checked)}
-                className="mr-2"
-              />
-              Stay Signed In
-            </label>
-          </div>
-          <button type="submit" className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded text-white font-semibold">
-            Sign In
-          </button>
-        </form>
-        {message.text && (
-          <div className={`mt-3 text-sm ${message.type === "success" ? "text-green-400" : "text-red-400"}`}>
-            {message.text}
-          </div>
-        )}
-        <p className="mt-4 text-sm text-gray-300">
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-blue-500 hover:underline">Create new account</Link>
-        </p>
-      </div>
-    </div>
+            Stay Signed In
+          </label>
+        </div>
+
+        <Button type="submit" variant="primary" fullWidth>
+          Sign In
+        </Button>
+      </form>
+
+      <p className="mt-4 text-sm">
+        Don't have an account?{" "}
+        <Link to="/signup" className="text-blue-500 hover:underline">
+          Create new account
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }
