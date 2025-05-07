@@ -21,8 +21,9 @@ A web-based task management system built with **React**, **Tailwind CSS**, and *
 
 src/
 ├── components/ # Reusable UI components
+├── pages/ # SignIn, SignUp, Home, etc.
 ├── assets/ # Images and static files
 ├── App.jsx # Main app component with routes
 ├── main.jsx # Entry point
 
-Done By : Amjad Mousa, Arqam Mousa
+Done By : Amjad Mousa,Arqam Mousa
