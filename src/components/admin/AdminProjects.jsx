@@ -6,12 +6,15 @@ import AddProjectModal from "../AddProjectModal";
 const AdminProjects = () => {
   const { isDarkMode } = useContext(DarkModeContext);
   const [projects, setProjects] = useState([]);
-  const [filter, setFilter] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [deleteMessage, setDeleteMessage] = useState(null);
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
+  const [sortConfig, setSortConfig] = useState({
+    key: "title",
+    direction: "asc",
+  });
 
   useEffect(() => {
     const savedProjects = JSON.parse(localStorage.getItem("projects")) || [];
@@ -26,13 +29,48 @@ const AdminProjects = () => {
     document.title = "Projects Manager | Task Manager";
   }, []);
 
-  const filteredProjects = projects.filter((project) => {
-    const matchesCategory = filter === "All" || project.category === filter;
-    const matchesSearch =
-      project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Sort projects function
+  const sortProjects = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Filter and sort projects
+  const filteredProjects = projects
+    .filter((project) => {
+      const query = searchQuery.toLowerCase();
+      return (
+        project.title.toLowerCase().includes(query) ||
+        project.description.toLowerCase().includes(query) ||
+        (project.category && project.category.toLowerCase().includes(query)) ||
+        (project.students &&
+          project.students.some((student) =>
+            student.toLowerCase().includes(query)
+          ))
+      );
+    })
+    .sort((a, b) => {
+      // Handle different data types for sorting
+      if (sortConfig.key === "progress") {
+        // Sort by progress (numeric)
+        const aValue = a.progress || 0;
+        const bValue = b.progress || 0;
+        return sortConfig.direction === "asc"
+          ? aValue - bValue
+          : bValue - aValue;
+      } else {
+        // Sort by string values (title, category, etc.)
+        const aValue = a[sortConfig.key] || "";
+        const bValue = b[sortConfig.key] || "";
+
+        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      }
+    });
 
   const confirmDeleteProject = (id) => {
     const updatedProjects = projects.filter((project) => project.id !== id);
@@ -62,8 +100,8 @@ const AdminProjects = () => {
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto mb-4 md:mb-0">
           <input
             type="text"
-            placeholder="Search projects..."
-            className={`px-4 py-2 rounded-lg w-full md:w-64 ${
+            placeholder="Search projects (title, category, students)..."
+            className={`px-4 py-2 rounded-lg w-full md:w-96 ${
               isDarkMode
                 ? "bg-gray-800 text-white border-gray-700"
                 : "bg-white text-gray-800 border border-gray-300"
@@ -78,14 +116,28 @@ const AdminProjects = () => {
                 ? "bg-gray-800 text-white border-gray-700"
                 : "bg-white text-gray-800 border border-gray-300"
             }`}
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            value={sortConfig.key}
+            onChange={(e) => sortProjects(e.target.value)}
           >
-            <option value="All">All Categories</option>
-            <option value="Web Development">Web Development</option>
-            <option value="Mobile Development">Mobile Development</option>
-            <option value="Machine Learning">Machine Learning</option>
+            <option value="title">Sort by Title</option>
+            <option value="category">Sort by Category</option>
+            <option value="progress">Sort by Progress</option>
           </select>
+
+          <button
+            onClick={() => sortProjects(sortConfig.key)}
+            className={`px-3 py-2 rounded-lg flex items-center gap-1 ${
+              isDarkMode
+                ? "bg-gray-700 text-white hover:bg-gray-600"
+                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+            }`}
+            title={`Sort ${
+              sortConfig.direction === "asc" ? "Descending" : "Ascending"
+            }`}
+          >
+            <span>{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
+            <span>Sort Order</span>
+          </button>
         </div>
 
         <button
@@ -95,6 +147,41 @@ const AdminProjects = () => {
         >
           <span>➕</span> <span className="font-medium">Add Project</span>
         </button>
+      </div>
+
+      {/* Table Header for Sorting */}
+      <div
+        className={`w-full mb-4 p-3 rounded-lg grid grid-cols-3 gap-4 ${
+          isDarkMode ? "bg-gray-800 text-gray-300" : "bg-gray-100 text-gray-700"
+        }`}
+      >
+        <div
+          className="cursor-pointer flex items-center gap-1 font-medium"
+          onClick={() => sortProjects("title")}
+        >
+          Title
+          {sortConfig.key === "title" && (
+            <span>{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
+          )}
+        </div>
+        <div
+          className="cursor-pointer flex items-center gap-1 font-medium"
+          onClick={() => sortProjects("category")}
+        >
+          Category
+          {sortConfig.key === "category" && (
+            <span>{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
+          )}
+        </div>
+        <div
+          className="cursor-pointer flex items-center gap-1 font-medium"
+          onClick={() => sortProjects("progress")}
+        >
+          Progress
+          {sortConfig.key === "progress" && (
+            <span>{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
