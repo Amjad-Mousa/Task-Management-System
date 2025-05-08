@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext } from "react";
 import { DashboardLayout } from "../layout";
-import { Card, StatusBadge, Select } from "../ui";
+import { Card, StatusBadge } from "../ui";
 import { StatCard } from "../shared";
 import { DarkModeContext } from "../../Context/DarkModeContext";
 import { Link } from "react-router-dom";
@@ -11,10 +11,9 @@ import { Link } from "react-router-dom";
 const StudentHome = () => {
   const { isDarkMode } = useContext(DarkModeContext);
   const [tasks, setTasks] = useState([]);
-  const [projects, setProjects] = useState([]);
   const [selectedStat, setSelectedStat] = useState(null);
   const [taskFilter, setTaskFilter] = useState("all");
-  const [selectedProject, setSelectedProject] = useState(null);
+  const [showProjectsModal, setShowProjectsModal] = useState(false);
 
   useEffect(() => {
     document.title = "Student Dashboard | Task Manager";
@@ -80,65 +79,28 @@ const StudentHome = () => {
     setTasks(studentTasks);
   }, []);
 
-  // Load student projects
-  useEffect(() => {
-    const studentProjects = [
-      {
-        id: 1,
-        title: "Academic Research",
-        description:
-          "Research project on advanced topics in your field of study",
-        progress: 65,
-        status: "In Progress",
-        startDate: "2025-03-15",
-        endDate: "2025-06-15",
-        tasks: [1, 2, 4],
-      },
-      {
-        id: 2,
-        title: "Web Development",
-        description:
-          "Building a responsive web application with modern technologies",
-        progress: 40,
-        status: "In Progress",
-        startDate: "2025-04-01",
-        endDate: "2025-05-30",
-        tasks: [3, 5],
-      },
-      {
-        id: 3,
-        title: "Data Analysis",
-        description: "Analyzing large datasets to extract meaningful insights",
-        progress: 10,
-        status: "Not Started",
-        startDate: "2025-05-01",
-        endDate: "2025-06-30",
-        tasks: [],
-      },
-    ];
-    setProjects(studentProjects);
-  }, []);
-
   // Get filtered tasks based on selected filter
   const getFilteredTasks = () => {
-    if (taskFilter === "all") return tasks;
-    if (taskFilter === "upcoming") {
-      return tasks.filter((task) => {
+    let filteredTasks;
+    if (taskFilter === "all") {
+      filteredTasks = tasks;
+    } else if (taskFilter === "upcoming") {
+      filteredTasks = tasks.filter((task) => {
         const dueDate = new Date(task.dueDate);
         const today = new Date();
         const diffTime = dueDate - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays <= 7 && diffDays >= 0 && task.status !== "Completed";
       });
+    } else {
+      filteredTasks = tasks.filter((task) => task.status === taskFilter);
     }
-    return tasks.filter((task) => task.status === taskFilter);
-  };
 
-  // Get tasks for selected project
-  const getProjectTasks = (projectId) => {
-    const project = projects.find((p) => p.id === projectId);
-    if (!project) return [];
-    return tasks.filter((task) => project.tasks.includes(task.id));
+    // Sort by due date (most recent first)
+    filteredTasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+
+    // Return only the first 5 tasks
+    return filteredTasks.slice(0, 5);
   };
 
   // Calculate task status counts
@@ -149,34 +111,53 @@ const StudentHome = () => {
     Completed: tasks.filter((task) => task.status === "Completed").length,
   };
 
+  // Get unique projects from tasks
+  const getUniqueProjects = () => {
+    const projectNames = [...new Set(tasks.map((task) => task.project))];
+    return projectNames.map((name) => {
+      const projectTasks = tasks.filter((task) => task.project === name);
+      const completedTasks = projectTasks.filter(
+        (task) => task.status === "Completed"
+      ).length;
+      const totalTasks = projectTasks.length;
+      const progress =
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      return {
+        name,
+        progress,
+        tasks: projectTasks,
+        completedTasks,
+        totalTasks,
+      };
+    });
+  };
+
   // Handle stat card click
   const handleStatCardClick = (statTitle) => {
     if (selectedStat === statTitle) {
       setSelectedStat(null);
+      setShowProjectsModal(false);
     } else {
       setSelectedStat(statTitle);
 
       // Set appropriate task filter based on selected stat
-      if (statTitle === "Number of Tasks") {
+      if (statTitle === "Number of Projects") {
+        setShowProjectsModal(true);
+      } else if (statTitle === "Number of Tasks") {
         setTaskFilter("all");
-      } else if (statTitle === "Number of Finished Projects") {
+        setShowProjectsModal(false);
+      } else if (statTitle === "Completed Tasks") {
         setTaskFilter("Completed");
+        setShowProjectsModal(false);
       } else if (statTitle === "Upcoming Deadlines") {
         setTaskFilter("upcoming");
+        setShowProjectsModal(false);
       }
     }
   };
 
-  // Handle project click
-  const handleProjectClick = (projectId) => {
-    if (selectedProject === projectId) {
-      setSelectedProject(null);
-    } else {
-      setSelectedProject(projectId);
-    }
-  };
-
-  if (!tasks || !projects) {
+  if (!tasks) {
     return <div>Loading dashboard...</div>;
   }
 
@@ -212,65 +193,11 @@ const StudentHome = () => {
         </div>
       </div>
 
-      {/* Task Status Summary */}
-      <div className="mb-6">
-        <Card className="w-full">
-          <h2 className="text-xl font-semibold mb-4">Task Status Summary</h2>
-          <div className="flex flex-wrap gap-4 justify-center">
-            {Object.entries(taskStatusCounts).map(([status, count]) => (
-              <div
-                key={status}
-                onClick={() => setTaskFilter(status)}
-                className={`px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                  taskFilter === status
-                    ? "transform scale-105 shadow-md"
-                    : "hover:shadow-sm"
-                } ${
-                  isDarkMode
-                    ? "bg-gray-800 hover:bg-gray-700"
-                    : "bg-gray-100 hover:bg-gray-200"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <StatusBadge status={status} />
-                  <span className="text-lg font-semibold">{count}</span>
-                </div>
-              </div>
-            ))}
-            <div
-              onClick={() => setTaskFilter("all")}
-              className={`px-4 py-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                taskFilter === "all"
-                  ? "transform scale-105 shadow-md"
-                  : "hover:shadow-sm"
-              } ${
-                isDarkMode
-                  ? "bg-gray-800 hover:bg-gray-700"
-                  : "bg-gray-100 hover:bg-gray-200"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <span
-                  className={`px-2.5 py-1 rounded-full text-center min-w-[7rem] ${
-                    isDarkMode
-                      ? "bg-blue-900/30 text-blue-300 border border-blue-800"
-                      : "bg-blue-600 text-white border border-blue-700"
-                  }`}
-                >
-                  All Tasks
-                </span>
-                <span className="text-lg font-semibold">{tasks.length}</span>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Projects Section */}
-      <div className="mb-6">
+      {/* Tasks List */}
+      <div className="flex justify-center mb-6">
         <Card className="w-full">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Your Projects</h2>
+            <h2 className="text-xl font-semibold">Recent Tasks</h2>
             <Link
               to="/student-task"
               className={`px-3 py-1 rounded text-sm ${
@@ -283,114 +210,9 @@ const StudentHome = () => {
             </Link>
           </div>
 
-          <div className="space-y-4">
-            {projects.map((project) => (
-              <div
-                key={project.id}
-                className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${
-                  selectedProject === project.id
-                    ? isDarkMode
-                      ? "border-blue-500 bg-gray-800"
-                      : "border-blue-500 bg-blue-50"
-                    : isDarkMode
-                    ? "border-gray-700 hover:border-gray-600"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-                onClick={() => handleProjectClick(project.id)}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-medium">{project.title}</h3>
-                  <StatusBadge status={project.status} />
-                </div>
-                <p
-                  className={`text-sm mb-3 ${
-                    isDarkMode ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  {project.description}
-                </p>
-
-                {/* Progress bar */}
-                <div className="w-full bg-gray-300 dark:bg-gray-700 h-2 rounded-full mb-2">
-                  <div
-                    className={`h-2 rounded-full ${
-                      project.status === "Completed"
-                        ? "bg-green-500"
-                        : project.progress > 50
-                        ? "bg-yellow-500"
-                        : project.status === "Pending"
-                        ? "bg-gray-500"
-                        : "bg-red-500"
-                    }`}
-                    style={{ width: `${project.progress}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span>{project.progress}% Complete</span>
-                  <span>
-                    Due: {new Date(project.endDate).toLocaleDateString()}
-                  </span>
-                </div>
-
-                {/* Project tasks (shown when project is selected) */}
-                {selectedProject === project.id && (
-                  <div className="mt-4 pt-4 border-t dark:border-gray-700">
-                    <h4 className="font-medium mb-2">Project Tasks</h4>
-                    {getProjectTasks(project.id).length > 0 ? (
-                      <ul className="space-y-2">
-                        {getProjectTasks(project.id).map((task) => (
-                          <li
-                            key={task.id}
-                            className="flex justify-between items-center p-2 rounded bg-gray-100 dark:bg-gray-800"
-                          >
-                            <span>{task.title}</span>
-                            <StatusBadge status={task.status} size="sm" />
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        No tasks assigned to this project yet.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Tasks List */}
-      <div className="flex justify-center mb-6">
-        <Card className="w-full">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
-              {taskFilter === "all"
-                ? "All Tasks"
-                : taskFilter === "upcoming"
-                ? "Upcoming Deadlines"
-                : `${taskFilter} Tasks`}
-            </h2>
-            <Select
-              name="taskFilter"
-              value={taskFilter}
-              onChange={(e) => setTaskFilter(e.target.value)}
-              options={[
-                { value: "all", label: "All Tasks" },
-                { value: "Not Started", label: "Not Started" },
-                { value: "In Progress", label: "In Progress" },
-                { value: "Pending", label: "Pending" },
-                { value: "Completed", label: "Completed" },
-                { value: "upcoming", label: "Upcoming Deadlines" },
-              ]}
-              className="w-48"
-            />
-          </div>
-
           {getFilteredTasks().length === 0 ? (
             <p className="text-center py-4 text-gray-500 dark:text-gray-400">
-              No tasks found for the selected filter.
+              No tasks available.
             </p>
           ) : (
             <ul className="space-y-3">
@@ -401,6 +223,67 @@ const StudentHome = () => {
           )}
         </Card>
       </div>
+
+      {/* Projects Modal */}
+      {showProjectsModal && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50">
+          <div
+            className={`p-6 rounded-lg w-full max-w-md ${
+              isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
+            }`}
+          >
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Your Projects</h2>
+              <button
+                onClick={() => setShowProjectsModal(false)}
+                className={`text-3xl ${
+                  isDarkMode ? "hover:text-gray-400" : "hover:text-gray-600"
+                }`}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="max-h-80 overflow-y-auto pr-2 custom-scrollbar">
+              <ul className="space-y-3">
+                {getUniqueProjects().map((project) => (
+                  <li
+                    key={project.name}
+                    className={`p-4 rounded-lg ${
+                      isDarkMode ? "bg-gray-700" : "bg-gray-100"
+                    }`}
+                  >
+                    <span
+                      className={`text-lg font-medium ${
+                        isDarkMode ? "text-blue-300" : "text-blue-600"
+                      }`}
+                    >
+                      {project.name}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <style jsx>{`
+              .custom-scrollbar::-webkit-scrollbar {
+                width: 6px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-track {
+                background: ${isDarkMode ? "#1f2937" : "#f3f4f6"};
+                border-radius: 10px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: ${isDarkMode ? "#4b5563" : "#d1d5db"};
+                border-radius: 10px;
+              }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                background: ${isDarkMode ? "#6b7280" : "#9ca3af"};
+              }
+            `}</style>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

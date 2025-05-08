@@ -1,8 +1,10 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef, useCallback } from "react";
 import { DashboardLayout } from "../layout";
 import { Card, Select, StatusBadge, Modal } from "../ui";
 import { DarkModeContext } from "../../Context/DarkModeContext";
 import StatusUpdateModal from "./StatusUpdateModal";
+import { FixedSizeList as List } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
 import { getSearchInputClasses } from "../../utils/adminUtils";
 
 /**
@@ -20,6 +22,18 @@ const StudentTask = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
   const SUCCESS_MESSAGE_TIMEOUT = 3000;
+
+  // Reference for the virtualized list
+  const listRef = useRef(null);
+
+  // Column definitions for the table
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const columns = [
+    { display: "Task", key: "title", width: "25%", align: "left" },
+    { display: "Description", key: "description", width: "40%", align: "left" },
+    { display: "Status", key: "status", width: "15%", align: "left" },
+    { display: "Due Date", key: "dueDate", width: "20%", align: "left" },
+  ];
 
   useEffect(() => {
     document.title = "Student Tasks | Task Manager";
@@ -71,7 +85,7 @@ const StudentTask = () => {
     setSortConfig({ key, direction });
   };
 
-  const getSortedTasks = () => {
+  const getSortedTasks = useCallback(() => {
     // First filter tasks based on search query
     const filteredTasks = tasks.filter((task) => {
       if (!searchQuery.trim()) return true;
@@ -109,13 +123,16 @@ const StudentTask = () => {
       return 0;
     });
     return sortedTasks;
-  };
+  }, [tasks, searchQuery, sortConfig]);
 
-  const handleTaskClick = (taskId) => {
-    const task = tasks.find((task) => task.id === taskId);
-    setSelectedTask(task);
-    setIsStatusModalOpen(true);
-  };
+  const handleTaskClick = useCallback(
+    (taskId) => {
+      const task = tasks.find((task) => task.id === taskId);
+      setSelectedTask(task);
+      setIsStatusModalOpen(true);
+    },
+    [tasks]
+  );
 
   const handleUpdateStatus = (taskId, newStatus) => {
     setTasks((prevTasks) =>
@@ -126,6 +143,71 @@ const StudentTask = () => {
     setSuccessMessage("Task status updated successfully!");
     setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
+
+  // Virtualized row component
+  const Row = useCallback(
+    ({ index, style }) => {
+      const sortedTasks = getSortedTasks();
+      const task = sortedTasks[index];
+
+      return (
+        <div
+          style={{
+            ...style,
+            display: "flex",
+            alignItems: "center",
+            width: "100%",
+          }}
+          className={`border-b ${
+            isDarkMode ? "border-gray-700" : "border-gray-200"
+          } table-row-hover transition-colors duration-200 cursor-pointer ${
+            index % 2 === 0
+              ? isDarkMode
+                ? "bg-gray-900"
+                : "bg-white"
+              : isDarkMode
+              ? "bg-gray-800"
+              : "bg-gray-50"
+          }`}
+          onClick={() => handleTaskClick(task.id)}
+        >
+          <div
+            style={{ width: columns[0].width }}
+            className={`px-6 py-4 text-sm font-medium truncate text-left ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}
+          >
+            {task.title}
+          </div>
+          <div
+            style={{ width: columns[1].width }}
+            className={`px-6 py-4 text-sm truncate text-left ${
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            }`}
+          >
+            {task.description.length > 50
+              ? `${task.description.substring(0, 50)}...`
+              : task.description}
+          </div>
+          <div
+            style={{ width: columns[2].width }}
+            className="px-6 py-4 flex justify-start"
+          >
+            <StatusBadge status={task.status} />
+          </div>
+          <div
+            style={{ width: columns[3].width }}
+            className={`px-6 py-4 text-sm text-left ${
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            }`}
+          >
+            {new Date(task.dueDate).toLocaleDateString()}
+          </div>
+        </div>
+      );
+    },
+    [isDarkMode, getSortedTasks, columns, handleTaskClick]
+  );
 
   return (
     <DashboardLayout
@@ -156,87 +238,75 @@ const StudentTask = () => {
         </div>
       </div>
 
-      {/* Tasks Table */}
+      {/* Tasks Table with Virtualization */}
       <div
         className={`w-full overflow-x-auto rounded-lg border ${
           isDarkMode ? "border-gray-700" : "border-gray-200"
         }`}
       >
-        <table
-          className={`min-w-full divide-y ${
-            isDarkMode ? "divide-gray-700" : "divide-gray-200"
+        {/* Table Header */}
+        <div
+          className={`flex ${
+            isDarkMode
+              ? "bg-gray-800 text-gray-300"
+              : "bg-gray-100 text-gray-700"
           }`}
         >
-          <thead
-            className={
-              isDarkMode
-                ? "bg-gray-800 text-gray-300"
-                : "bg-gray-100 text-gray-700"
-            }
-          >
-            <tr>
-              {[
-                { display: "Task", key: "title" },
-                { display: "Description", key: "description" },
-                { display: "Status", key: "status" },
-                { display: "Due Date", key: "dueDate" },
-              ].map((header) => (
-                <th
-                  key={header.display}
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
-                    header.key ? "cursor-pointer" : ""
-                  } transition-colors duration-150 tooltip ${
-                    isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-200"
-                  }`}
-                  onClick={() => header.key && sortTasks(header.key)}
-                  data-tooltip={header.key ? `Sort by ${header.display}` : ""}
-                >
-                  <div className="flex items-center gap-1">
-                    {header.display}
-                    {header.key && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className={`h-4 w-4 ${
-                          sortConfig.key === header.key
-                            ? "opacity-100"
-                            : "opacity-50"
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d={
-                            sortConfig.key === header.key &&
-                            sortConfig.direction === "desc"
-                              ? "M7 16V4m0 0L3 8m4-4l4 4"
-                              : sortConfig.key === header.key &&
-                                sortConfig.direction === "asc"
-                              ? "M7 4v12m0 0l4-4m-4 4l-4-4"
-                              : "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-                          }
-                        />
-                      </svg>
-                    )}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody
-            className={`divide-y ${
-              isDarkMode
-                ? "bg-gray-900 divide-gray-700"
-                : "bg-white divide-gray-200"
-            }`}
-          >
-            {getSortedTasks().length === 0 ? (
-              <tr>
-                <td
-                  colSpan="4"
+          {columns.map((header) => (
+            <div
+              key={header.display}
+              style={{ width: header.width }}
+              className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                header.key ? "cursor-pointer" : ""
+              } transition-colors duration-150 tooltip ${
+                isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-200"
+              }`}
+              onClick={() => header.key && sortTasks(header.key)}
+              data-tooltip={header.key ? `Sort by ${header.display}` : ""}
+            >
+              <div className="flex items-center gap-1">
+                {header.display}
+                {header.key && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-4 w-4 ${
+                      sortConfig.key === header.key
+                        ? "opacity-100"
+                        : "opacity-50"
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d={
+                        sortConfig.key === header.key &&
+                        sortConfig.direction === "desc"
+                          ? "M7 16V4m0 0L3 8m4-4l4 4"
+                          : sortConfig.key === header.key &&
+                            sortConfig.direction === "asc"
+                          ? "M7 4v12m0 0l4-4m-4 4l-4-4"
+                          : "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                      }
+                    />
+                  </svg>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Virtualized Table Body */}
+        <div style={{ height: "calc(100vh - 280px)" }}>
+          {(() => {
+            const sortedTasks = getSortedTasks();
+
+            if (sortedTasks.length === 0) {
+              return (
+                <div
                   className={`px-6 py-8 text-center text-sm ${
                     isDarkMode ? "text-gray-400" : "text-gray-500"
                   }`}
@@ -244,46 +314,28 @@ const StudentTask = () => {
                   {searchQuery.trim()
                     ? `No tasks found matching "${searchQuery}"`
                     : "No tasks available."}
-                </td>
-              </tr>
-            ) : (
-              getSortedTasks().map((task) => (
-                <tr
-                  key={task.id}
-                  onClick={() => handleTaskClick(task.id)}
-                  className="table-row-hover transition-colors duration-150 cursor-pointer"
-                >
-                  <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                      isDarkMode ? "text-white" : "text-gray-900"
-                    }`}
+                </div>
+              );
+            }
+
+            return (
+              <AutoSizer>
+                {({ height, width }) => (
+                  <List
+                    ref={listRef}
+                    height={height}
+                    width={width}
+                    itemCount={sortedTasks.length}
+                    itemSize={64} // Height of each row
+                    overscanCount={5} // Number of items to render outside of the visible area
                   >
-                    {task.title}
-                  </td>
-                  <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm ${
-                      isDarkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    {task.description.length > 50
-                      ? `${task.description.substring(0, 50)}...`
-                      : task.description}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge status={task.status} />
-                  </td>
-                  <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm ${
-                      isDarkMode ? "text-gray-300" : "text-gray-700"
-                    }`}
-                  >
-                    {new Date(task.dueDate).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                    {Row}
+                  </List>
+                )}
+              </AutoSizer>
+            );
+          })()}
+        </div>
       </div>
 
       {/* Status Update Modal */}

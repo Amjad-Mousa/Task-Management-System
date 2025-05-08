@@ -1,7 +1,9 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { DarkModeContext } from "../../Context/DarkModeContext";
 import { DashboardLayout } from "../layout";
 import ProjectFormModal from "../ProjectFormModal";
+import { FixedSizeGrid as Grid } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
 import {
   getStatusColor,
   sortItems,
@@ -24,6 +26,10 @@ const AdminProjects = () => {
     direction: "asc",
   });
 
+  // Grid configuration
+  const [columnCount, setColumnCount] = useState(3); // Default for large screens
+  const gridRef = useRef(null);
+
   useEffect(() => {
     const savedProjects = JSON.parse(localStorage.getItem("projects")) || [];
     const projectsWithIds = savedProjects.map((project) => ({
@@ -35,6 +41,24 @@ const AdminProjects = () => {
 
   useEffect(() => {
     document.title = "Projects Manager | Task Manager";
+  }, []);
+
+  // Update column count based on window width
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 768) {
+        setColumnCount(1); // Mobile
+      } else if (width < 1024) {
+        setColumnCount(2); // Tablet
+      } else {
+        setColumnCount(3); // Desktop
+      }
+    };
+
+    handleResize(); // Initial call
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Sort projects function
@@ -95,6 +119,99 @@ const AdminProjects = () => {
     setProjectToEdit(null);
     setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
+
+  // Project Card Component (for virtualization)
+  const ProjectCard = useCallback(
+    ({ project, style }) => {
+      return (
+        <div style={style} className="p-2">
+          <div
+            className={`rounded-lg hover:transform hover:scale-105 transition-all dashboard-card cursor-pointer overflow-hidden h-full ${
+              isDarkMode ? "bg-gray-800" : "bg-white shadow-md"
+            }`}
+          >
+            {/* Card Content */}
+            <div onClick={() => setSelectedProject(project)} className="p-5">
+              <h3
+                className={`text-xl font-bold mb-4 ${
+                  isDarkMode ? "text-blue-400" : "text-blue-600"
+                }`}
+              >
+                {project.title}
+              </h3>
+
+              <div className="flex flex-col gap-3">
+                <div
+                  className={`flex items-center ${
+                    isDarkMode ? "text-gray-300" : "text-gray-600"
+                  }`}
+                >
+                  <span className="font-medium w-24">Category:</span>
+                  <span>{project.category}</span>
+                </div>
+                <div
+                  className={`flex items-center ${
+                    isDarkMode ? "text-gray-300" : "text-gray-600"
+                  }`}
+                >
+                  <span className="font-medium w-24">Students:</span>
+                  <span>{project.students?.length || 0}</span>
+                </div>
+                <div className="mt-2">
+                  <span className="font-medium mb-1 block">Progress:</span>
+                  <div
+                    className={`px-3 py-2 rounded-lg text-white text-center ${getStatusColor(
+                      getStatusFromProgress(project.progress, project.status),
+                      isDarkMode
+                    )}`}
+                  >
+                    {getStatusFromProgress(project.progress, project.status)}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Footer with Buttons */}
+            <div
+              className={`flex justify-between mt-2 p-3 border-t ${
+                isDarkMode ? "border-gray-700" : "border-gray-200"
+              }`}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setProjectToEdit(project);
+                  setIsProjectModalOpen(true);
+                }}
+                className={`px-4 py-2 rounded-lg ${
+                  isDarkMode
+                    ? "bg-blue-600 hover:bg-blue-500 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
+                }`}
+              >
+                Edit
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setProjectToDelete(project);
+                }}
+                className={`px-4 py-2 rounded-lg ${
+                  isDarkMode
+                    ? "bg-gray-700 hover:bg-gray-600 text-red-300/80"
+                    : "bg-gray-200 hover:bg-gray-300 text-red-500/80"
+                }`}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    },
+    [isDarkMode]
+  );
 
   return (
     <DashboardLayout
@@ -189,92 +306,49 @@ const AdminProjects = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredProjects.map((project) => (
-          <div
-            key={project.id}
-            className={`rounded-lg hover:transform hover:scale-105 transition-all dashboard-card cursor-pointer overflow-hidden ${
-              isDarkMode ? "bg-gray-800" : "bg-white shadow-md"
-            }`}
-          >
-            {/* Card Content */}
-            <div onClick={() => setSelectedProject(project)} className="p-5">
-              <h3
-                className={`text-xl font-bold mb-4 ${
-                  isDarkMode ? "text-blue-400" : "text-blue-600"
-                }`}
+      <div className="w-full" style={{ height: "calc(100vh - 280px)" }}>
+        <AutoSizer>
+          {({ height, width }) => {
+            // Dynamically calculate columns based on width
+            const calculatedColumnCount =
+              width < 768 ? 1 : width < 1024 ? 2 : 3;
+            // Update state if needed
+            if (calculatedColumnCount !== columnCount) {
+              setColumnCount(calculatedColumnCount);
+            }
+
+            // Calculate item dimensions
+            const columnWidth = width / calculatedColumnCount;
+            const rowHeight = 320; // Fixed height for each card
+
+            // Calculate row count based on number of items and columns
+            const rowCount = Math.ceil(
+              filteredProjects.length / calculatedColumnCount
+            );
+
+            return (
+              <Grid
+                ref={gridRef}
+                columnCount={calculatedColumnCount}
+                columnWidth={columnWidth}
+                height={height}
+                rowCount={rowCount}
+                rowHeight={rowHeight}
+                width={width}
+                itemData={filteredProjects}
               >
-                {project.title}
-              </h3>
-
-              <div className="flex flex-col gap-3">
-                <div
-                  className={`flex items-center ${
-                    isDarkMode ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  <span className="font-medium w-24">Category:</span>
-                  <span>{project.category}</span>
-                </div>
-                <div
-                  className={`flex items-center ${
-                    isDarkMode ? "text-gray-300" : "text-gray-600"
-                  }`}
-                >
-                  <span className="font-medium w-24">Students:</span>
-                  <span>{project.students?.length || 0}</span>
-                </div>
-                <div className="mt-2">
-                  <span className="font-medium mb-1 block">Progress:</span>
-                  <div
-                    className={`px-3 py-2 rounded-lg text-white text-center ${getStatusColor(
-                      getStatusFromProgress(project.progress, project.status),
-                      isDarkMode
-                    )}`}
-                  >
-                    {getStatusFromProgress(project.progress, project.status)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Card Footer with Buttons */}
-            <div
-              className={`flex justify-between mt-2 p-3 border-t ${
-                isDarkMode ? "border-gray-700" : "border-gray-200"
-              }`}
-            >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setProjectToEdit(project);
-                  setIsProjectModalOpen(true);
+                {({ columnIndex, rowIndex, style }) => {
+                  const index = rowIndex * calculatedColumnCount + columnIndex;
+                  if (index >= filteredProjects.length) {
+                    return null; // Return null for empty cells
+                  }
+                  const project = filteredProjects[index];
+                  return <ProjectCard project={project} style={style} />;
                 }}
-                className={`px-4 py-2 rounded-lg ${
-                  isDarkMode
-                    ? "bg-blue-600 hover:bg-blue-500 text-white"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                }`}
-              >
-                Edit
-              </button>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setProjectToDelete(project);
-                }}
-                className={`px-4 py-2 rounded-lg ${
-                  isDarkMode
-                    ? "bg-gray-700 hover:bg-gray-600 text-red-300"
-                    : "bg-gray-200 hover:bg-gray-300 text-red-600"
-                }`}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
+              </Grid>
+            );
+          }}
+        </AutoSizer>
       </div>
 
       {selectedProject && (
@@ -390,7 +464,11 @@ const AdminProjects = () => {
               isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
             }`}
           >
-            <h2 className="text-xl font-bold mb-4 text-red-500">
+            <h2
+              className={`text-xl font-bold mb-4 ${
+                isDarkMode ? "text-blue-400" : "text-blue-600"
+              }`}
+            >
               Confirm Deletion
             </h2>
             <p
@@ -398,8 +476,7 @@ const AdminProjects = () => {
                 isDarkMode ? "text-gray-300" : "text-gray-600"
               }`}
             >
-              Are you sure you want to delete{" "}
-              <strong>{projectToDelete.title}</strong>?
+              Are you sure you want to delete this project?
             </p>
             <div className="flex justify-end space-x-4">
               <button
@@ -416,8 +493,8 @@ const AdminProjects = () => {
                 onClick={() => confirmDeleteProject(projectToDelete.id)}
                 className={`px-4 py-2 rounded-lg ${
                   isDarkMode
-                    ? "bg-gray-700 hover:bg-gray-600 text-red-300"
-                    : "bg-gray-200 hover:bg-gray-300 text-red-600"
+                    ? "bg-gray-700 hover:bg-gray-600 text-red-300/80"
+                    : "bg-gray-200 hover:bg-gray-300 text-red-500/80"
                 }`}
               >
                 Confirm Delete

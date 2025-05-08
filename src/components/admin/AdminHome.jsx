@@ -369,9 +369,8 @@ const AdminHome = () => {
         </Card>
       </div>
 
-      {/* Recent Activity and Project Status */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Recent Activity */}
+      {/* Recent Activity */}
+      <div className="mb-6">
         <Card>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recent Activity</h2>
@@ -407,72 +406,6 @@ const AdminHome = () => {
               ))}
             </ul>
           )}
-        </Card>
-
-        {/* Project Categories */}
-        <Card>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Project Categories</h2>
-            <Link
-              to="/projects"
-              className={`text-sm px-3 py-1 rounded ${
-                isDarkMode
-                  ? "bg-blue-900/30 text-blue-300 hover:bg-blue-800/50"
-                  : "bg-blue-100 text-blue-700 hover:bg-blue-200"
-              }`}
-            >
-              View All
-            </Link>
-          </div>
-          {Object.keys(projectCategories).length === 0 ? (
-            <p className="text-center py-4 text-gray-500">
-              No project categories found.
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {Object.entries(projectCategories).map(([category, count]) => (
-                <div key={category} className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">{category}</span>
-                    <span className="text-sm">{count} projects</span>
-                  </div>
-                  <div className="w-full bg-gray-300 dark:bg-gray-700 h-2 rounded-full">
-                    <div
-                      className={`h-2 rounded-full ${
-                        isDarkMode ? "bg-blue-600" : "bg-blue-500"
-                      }`}
-                      style={{ width: `${(count / projects.length) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="mt-4">
-            <h3 className="font-medium mb-2">Project Status</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div
-                className={`p-3 rounded-lg text-center ${
-                  isDarkMode ? "bg-gray-800" : "bg-gray-100"
-                }`}
-              >
-                <div className="text-2xl font-bold mb-1 text-yellow-500">
-                  {projects.filter((p) => p.status === "In Progress").length}
-                </div>
-                <div className="text-sm">In Progress</div>
-              </div>
-              <div
-                className={`p-3 rounded-lg text-center ${
-                  isDarkMode ? "bg-gray-800" : "bg-gray-100"
-                }`}
-              >
-                <div className="text-2xl font-bold mb-1 text-green-500">
-                  {projects.filter((p) => p.status === "Completed").length}
-                </div>
-                <div className="text-sm">Completed</div>
-              </div>
-            </div>
-          </div>
         </Card>
       </div>
     </DashboardLayout>
