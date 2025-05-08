@@ -3,10 +3,13 @@ import PropTypes from "prop-types";
 import { DarkModeContext } from "../Context/DarkModeContext";
 import { FixedSizeList as List } from "react-window";
 
+const generateId = () => "_" + Math.random().toString(36).substring(2, 11);
+
 /**
- * EditProjectModal component for updating existing projects
+ * ProjectFormModal component for adding or editing projects
  */
-const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
+const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
+  const isEditMode = !!project;
   const { isDarkMode } = useContext(DarkModeContext);
   const [projectTitle, setProjectTitle] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
@@ -19,7 +22,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
   const [dateErrors, setDateErrors] = useState({ startDate: "", endDate: "" });
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
-
+  
   // This would ideally come from an API or database
   // For demo purposes, we'll generate a larger list
   const generateStudentsList = () => {
@@ -30,63 +33,86 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
     }
     return students;
   };
-
+  
   const studentsList = generateStudentsList();
-
+  
   // Reference to the dropdown container for measuring
   const dropdownRef = useRef(null);
 
-  // Helper function to get today's date in YYYY-MM-DD format
-  const getTodayFormatted = useCallback(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
+  // Format date to YYYY-MM-DD for input type="date" and get today's date
+  const formatDateForInput = useCallback((date) => {
+    const d = new Date(date);
+    let month = "" + (d.getMonth() + 1);
+    let day = "" + d.getDate();
+    const year = d.getFullYear();
+
+    if (month.length < 2) month = "0" + month;
+    if (day.length < 2) day = "0" + day;
+
+    return [year, month, day].join("-");
   }, []);
+
+  // Get today's date formatted for input
+  const getTodayFormatted = useCallback(() => {
+    return formatDateForInput(new Date());
+  }, [formatDateForInput]);
 
   // Validate dates
   const validateDates = () => {
-    let isValid = true;
-    const newDateErrors = { startDate: "", endDate: "" };
+    const errors = { startDate: "", endDate: "" };
+    let hasErrors = false;
+
+    // Convert string dates to Date objects for comparison
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to beginning of day for fair comparison
 
     // Validate start date is today or in the future
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const startDateObj = new Date(startDate);
-    startDateObj.setHours(0, 0, 0, 0);
-
-    // Only validate start date is in the future for new projects
-    // For existing projects, we allow the original start date
-    if (!project.id && startDateObj < today) {
-      newDateErrors.startDate = "Start date must be today or in the future";
-      isValid = false;
+    // Only for new projects or if the start date has been changed
+    if (!isEditMode && startDate && start < today) {
+      errors.startDate = "Start date must be today or in the future";
+      hasErrors = true;
     }
 
     // Validate end date is after start date
-    const endDateObj = new Date(endDate);
-    endDateObj.setHours(0, 0, 0, 0);
-
-    if (endDateObj < startDateObj) {
-      newDateErrors.endDate = "End date must be after start date";
-      isValid = false;
+    if (startDate && endDate && end <= start) {
+      errors.endDate = "End date must be after start date";
+      hasErrors = true;
     }
 
-    setDateErrors(newDateErrors);
-    return isValid;
+    setDateErrors(errors);
+    return !hasErrors;
   };
 
   // Initialize form with project data when modal opens
   useEffect(() => {
-    if (isOpen && project) {
-      setProjectTitle(project.title || "");
-      setProjectDescription(project.description || "");
-      setSelectedStudents(project.students || []);
-      setProjectCategory(project.category || "");
-      setStartDate(project.startDate || "");
-      setEndDate(project.endDate || "");
-      setProjectStatus(project.status || "Not Started");
+    if (isOpen) {
+      if (isEditMode && project) {
+        // Edit mode - fill form with project data
+        setProjectTitle(project.title || "");
+        setProjectDescription(project.description || "");
+        setSelectedStudents(project.students || []);
+        setProjectCategory(project.category || "");
+        setStartDate(project.startDate || "");
+        setEndDate(project.endDate || "");
+        setProjectStatus(project.status || "Not Started");
+      } else {
+        // Add mode - reset form
+        setProjectTitle("");
+        setProjectDescription("");
+        setSelectedStudents([]);
+        setProjectCategory("");
+        setStartDate(getTodayFormatted()); // Set today as default start date
+        setEndDate("");
+        setProjectStatus("Not Started");
+      }
       setErrorMessage("");
       setDateErrors({ startDate: "", endDate: "" });
+      setStudentSearchQuery("");
+      setShowStudentDropdown(false);
     }
-  }, [isOpen, project]);
+  }, [isOpen, project, isEditMode, getTodayFormatted]);
 
   const handleStudentSelect = (student) => {
     setSelectedStudents((prev) =>
@@ -96,17 +122,17 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
     );
     // Keep the dropdown open after selection
   };
-
+  
   // Filter students based on search query
   const filteredStudents = studentsList.filter((student) =>
     student.toLowerCase().includes(studentSearchQuery.toLowerCase())
   );
-
+  
   // Toggle the dropdown
   const toggleStudentDropdown = () => {
     setShowStudentDropdown(!showStudentDropdown);
   };
-
+  
   // Close the dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -117,7 +143,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
         setShowStudentDropdown(false);
       }
     };
-
+    
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -163,20 +189,38 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
       progressValue = 0; // Red progress bar
     }
 
-    const updatedProject = {
-      ...project,
-      title: projectTitle,
-      description: projectDescription,
-      students: selectedStudents,
-      category: projectCategory,
-      startDate,
-      endDate,
-      status: projectStatus,
-      progress: progressValue,
-      lastUpdated: new Date().toISOString(),
-    };
-
-    onUpdateProject(updatedProject);
+    if (isEditMode) {
+      // Update existing project
+      const updatedProject = {
+        ...project,
+        title: projectTitle,
+        description: projectDescription,
+        students: selectedStudents,
+        category: projectCategory,
+        startDate,
+        endDate,
+        status: projectStatus,
+        progress: progressValue,
+        lastUpdated: new Date().toISOString(),
+      };
+      onSubmit(updatedProject);
+    } else {
+      // Create new project
+      const newProject = {
+        id: generateId(),
+        title: projectTitle,
+        description: projectDescription,
+        students: selectedStudents,
+        category: projectCategory,
+        startDate,
+        endDate,
+        status: projectStatus,
+        progress: progressValue,
+        tasks: [],
+        lastUpdated: new Date().toISOString(),
+      };
+      onSubmit(newProject);
+    }
   };
 
   if (!isOpen) return null;
@@ -194,7 +238,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
               isDarkMode ? "text-blue-400" : "text-blue-600"
             }`}
           >
-            Edit Project
+            {isEditMode ? "Edit Project" : "Add New Project"}
           </h2>
           <button
             onClick={onClose}
@@ -266,7 +310,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
             <label className="block text-sm font-medium">
               Select Students * ({selectedStudents.length} selected)
             </label>
-
+            
             {/* Selected Students Pills */}
             {selectedStudents.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
@@ -291,7 +335,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
                 ))}
               </div>
             )}
-
+            
             {/* Search Input */}
             <div className="relative">
               <input
@@ -314,7 +358,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
                 {showStudentDropdown ? "▲" : "▼"}
               </button>
             </div>
-
+            
             {/* Dropdown List with Virtualization */}
             {showStudentDropdown && (
               <div
@@ -327,7 +371,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
               >
                 {filteredStudents.length > 0 ? (
                   <List
-                    height={140} // Fixed height for the virtualized list
+                    height={240} // Fixed height for the virtualized list
                     width="100%"
                     itemCount={filteredStudents.length}
                     itemSize={40} // Height of each item in pixels
@@ -361,9 +405,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
                     }}
                   </List>
                 ) : (
-                  <div className="px-4 py-2 text-gray-500">
-                    No students found
-                  </div>
+                  <div className="px-4 py-2 text-gray-500">No students found</div>
                 )}
               </div>
             )}
@@ -397,6 +439,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
               <input
                 type="date"
                 value={startDate}
+                min={!isEditMode ? getTodayFormatted() : undefined} // Only set min date for new projects
                 onChange={(e) => {
                   setStartDate(e.target.value);
                   // Clear error when user changes the value
@@ -454,7 +497,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
               )}
             </div>
           </div>
-
+          
           {/* Project Status */}
           <div className="space-y-2">
             <label className="block text-sm font-medium">
@@ -493,7 +536,7 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
               type="submit"
               className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
             >
-              Update Project
+              {isEditMode ? "Update Project" : "Add Project"}
             </button>
           </div>
         </form>
@@ -502,11 +545,11 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
   );
 };
 
-EditProjectModal.propTypes = {
+ProjectFormModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
-  onUpdateProject: PropTypes.func.isRequired,
-  project: PropTypes.object.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  project: PropTypes.object,
 };
 
-export default EditProjectModal;
+export default ProjectFormModal;
