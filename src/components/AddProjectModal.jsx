@@ -14,14 +14,20 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   const [projectStatus, setProjectStatus] = useState("Not Started");
   const [errorMessage, setErrorMessage] = useState("");
   const [dateErrors, setDateErrors] = useState({ startDate: "", endDate: "" });
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
+  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
 
-  const studentsList = [
-    "Student 1",
-    "Student 2",
-    "Student 3",
-    "Student 4",
-    "Student 5",
-  ];
+  // This would ideally come from an API or database
+  // For demo purposes, we'll generate a larger list
+  const generateStudentsList = () => {
+    const students = [];
+    for (let i = 1; i <= 100; i++) {
+      students.push(`Student ${i}`);
+    }
+    return students;
+  };
+
+  const studentsList = generateStudentsList();
 
   // Format date to YYYY-MM-DD for input type="date"
   const formatDateForInput = (date) => {
@@ -89,7 +95,35 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
         ? prev.filter((s) => s !== student)
         : [...prev, student]
     );
+    // Keep the dropdown open after selection
   };
+
+  // Filter students based on search query
+  const filteredStudents = studentsList.filter((student) =>
+    student.toLowerCase().includes(studentSearchQuery.toLowerCase())
+  );
+
+  // Toggle the dropdown
+  const toggleStudentDropdown = () => {
+    setShowStudentDropdown(!showStudentDropdown);
+  };
+
+  // Close the dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showStudentDropdown &&
+        !event.target.closest(".student-dropdown-container")
+      ) {
+        setShowStudentDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showStudentDropdown]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -228,35 +262,100 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
             />
           </div>
 
-          {/* Students List */}
-          <div className="space-y-2">
+          {/* Students List - Searchable Dropdown */}
+          <div className="space-y-2 student-dropdown-container relative">
             <label className="block text-sm font-medium">
-              Select Students *
+              Select Students * ({selectedStudents.length} selected)
             </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {studentsList.map((student) => (
-                <label
-                  key={student}
-                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer ${
-                    isDarkMode
-                      ? "bg-gray-700 hover:bg-gray-600 text-white"
-                      : "bg-gray-200 hover:bg-gray-300 text-gray-800"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedStudents.includes(student)}
-                    onChange={() => handleStudentSelect(student)}
-                    className={`form-checkbox h-4 w-4 text-blue-500 rounded focus:ring-blue-500 ${
+
+            {/* Selected Students Pills */}
+            {selectedStudents.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedStudents.map((student) => (
+                  <div
+                    key={student}
+                    className={`px-2 py-1 rounded-full text-sm flex items-center gap-1 ${
                       isDarkMode
-                        ? "border-gray-600 bg-gray-700"
-                        : "border-gray-300 bg-white"
+                        ? "bg-blue-800 text-white"
+                        : "bg-blue-100 text-blue-800"
                     }`}
-                  />
-                  <span>{student}</span>
-                </label>
-              ))}
+                  >
+                    <span>{student}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleStudentSelect(student)}
+                      className="text-xs font-bold hover:text-red-500"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Search Input */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search students..."
+                value={studentSearchQuery}
+                onChange={(e) => setStudentSearchQuery(e.target.value)}
+                onClick={() => setShowStudentDropdown(true)}
+                className={`w-full px-4 py-2 border rounded-md ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-50 border-gray-300 text-gray-800"
+                }`}
+              />
+              <button
+                type="button"
+                onClick={toggleStudentDropdown}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2"
+              >
+                {showStudentDropdown ? "▲" : "▼"}
+              </button>
             </div>
+
+            {/* Dropdown List */}
+            {showStudentDropdown && (
+              <div
+                className={`absolute z-10 w-full mt-1 max-h-60 overflow-y-auto rounded-md shadow-lg ${
+                  isDarkMode
+                    ? "bg-gray-800 border border-gray-700"
+                    : "bg-white border border-gray-200"
+                }`}
+              >
+                {filteredStudents.length > 0 ? (
+                  filteredStudents.map((student) => (
+                    <div
+                      key={student}
+                      onClick={() => handleStudentSelect(student)}
+                      className={`px-4 py-2 cursor-pointer flex items-center ${
+                        selectedStudents.includes(student)
+                          ? isDarkMode
+                            ? "bg-blue-900"
+                            : "bg-blue-100"
+                          : isDarkMode
+                          ? "hover:bg-gray-700"
+                          : "hover:bg-gray-100"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.includes(student)}
+                        onChange={() => {}}
+                        className="mr-2"
+                      />
+                      <span>{student}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-2 text-gray-500">
+                    No students found
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Project Category */}

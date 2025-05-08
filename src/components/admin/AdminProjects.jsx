@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { DarkModeContext } from "../../Context/DarkModeContext";
 import { DashboardLayout } from "../layout";
 import AddProjectModal from "../AddProjectModal";
+import EditProjectModal from "../EditProjectModal";
 import {
   getStatusColor,
   sortItems,
@@ -18,6 +19,8 @@ const AdminProjects = () => {
   const [deleteMessage, setDeleteMessage] = useState(null);
   const [projectToDelete, setProjectToDelete] = useState(null);
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
+  const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState(null);
   const [sortConfig, setSortConfig] = useState({
     key: "title",
     direction: "asc",
@@ -77,6 +80,18 @@ const AdminProjects = () => {
     localStorage.setItem("projects", JSON.stringify(updatedProjects));
     setDeleteMessage("Project added successfully!");
     setIsAddProjectModalOpen(false);
+    setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+  };
+
+  const handleUpdateProject = (updatedProject) => {
+    const updatedProjects = projects.map((project) =>
+      project.id === updatedProject.id ? updatedProject : project
+    );
+    setProjects(updatedProjects);
+    localStorage.setItem("projects", JSON.stringify(updatedProjects));
+    setDeleteMessage("Project updated successfully!");
+    setIsEditProjectModalOpen(false);
+    setProjectToEdit(null);
     setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
 
@@ -174,62 +189,71 @@ const AdminProjects = () => {
         {filteredProjects.map((project) => (
           <div
             key={project.id}
-            className={`p-4 rounded-lg hover:transform hover:scale-105 transition-all dashboard-card ${
+            className={`p-4 rounded-lg hover:transform hover:scale-105 transition-all dashboard-card cursor-pointer ${
               isDarkMode ? "bg-gray-800" : "bg-white shadow-md"
             }`}
           >
-            <h3
-              className={`text-xl font-bold mb-2 ${
-                isDarkMode ? "text-blue-400" : "text-blue-600"
-              }`}
-            >
-              {project.title}
-            </h3>
-            <p
-              className={`line-clamp-2 mb-4 ${
-                isDarkMode ? "text-gray-300" : "text-gray-600"
-              }`}
-            >
-              {project.description}
-            </p>
-
-            <div className="space-y-2 text-sm">
-              <p>
-                <span className="font-semibold">Students:</span>{" "}
-                {project.students?.join(", ")}
-              </p>
-              <p>
-                <span className="font-semibold">Category:</span>{" "}
-                {project.category}
+            <div onClick={() => setSelectedProject(project)}>
+              <h3
+                className={`text-xl font-bold mb-2 ${
+                  isDarkMode ? "text-blue-400" : "text-blue-600"
+                }`}
+              >
+                {project.title}
+              </h3>
+              <p
+                className={`line-clamp-2 mb-4 ${
+                  isDarkMode ? "text-gray-300" : "text-gray-600"
+                }`}
+              >
+                {project.description}
               </p>
 
-              <div className="space-y-2">
-                <p className="font-semibold">Progress:</p>
-                <p
-                  className={`px-4 py-2 rounded-lg text-white w-full text-center ${getStatusColor(
-                    getStatusFromProgress(project.progress, project.status),
-                    isDarkMode
-                  )}`}
-                >
-                  {getStatusFromProgress(project.progress, project.status)}
+              <div className="space-y-2 text-sm">
+                <p>
+                  <span className="font-semibold">Students:</span>{" "}
+                  {project.students?.join(", ")}
                 </p>
+                <p>
+                  <span className="font-semibold">Category:</span>{" "}
+                  {project.category}
+                </p>
+
+                <div className="space-y-2">
+                  <p className="font-semibold">Progress:</p>
+                  <p
+                    className={`px-4 py-2 rounded-lg text-white w-full text-center ${getStatusColor(
+                      getStatusFromProgress(project.progress, project.status),
+                      isDarkMode
+                    )}`}
+                  >
+                    {getStatusFromProgress(project.progress, project.status)}
+                  </p>
+                </div>
               </div>
             </div>
 
             <div className="mt-4 flex justify-between">
               <button
-                onClick={() => setSelectedProject(project)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setProjectToEdit(project);
+                  setIsEditProjectModalOpen(true);
+                }}
                 className={`px-3 py-2 rounded-lg ${
                   isDarkMode
-                    ? "bg-gray-600 hover:bg-gray-500 text-white"
-                    : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                    ? "bg-blue-600 hover:bg-blue-500 text-white"
+                    : "bg-blue-500 hover:bg-blue-600 text-white"
                 }`}
               >
-                View Details
+                Edit
               </button>
 
               <button
-                onClick={() => setProjectToDelete(project)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setProjectToDelete(project);
+                }}
                 className={`px-3 py-2 rounded-lg ${
                   isDarkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-red-300"
@@ -398,6 +422,18 @@ const AdminProjects = () => {
         onClose={() => setIsAddProjectModalOpen(false)}
         onAddProject={handleAddProject}
       />
+
+      {projectToEdit && (
+        <EditProjectModal
+          isOpen={isEditProjectModalOpen}
+          onClose={() => {
+            setIsEditProjectModalOpen(false);
+            setProjectToEdit(null);
+          }}
+          onUpdateProject={handleUpdateProject}
+          project={projectToEdit}
+        />
+      )}
     </DashboardLayout>
   );
 };
