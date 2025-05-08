@@ -22,7 +22,7 @@ const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
   const [dateErrors, setDateErrors] = useState({ startDate: "", endDate: "" });
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
-  
+
   // This would ideally come from an API or database
   // For demo purposes, we'll generate a larger list
   const generateStudentsList = () => {
@@ -33,9 +33,9 @@ const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
     }
     return students;
   };
-  
+
   const studentsList = generateStudentsList();
-  
+
   // Reference to the dropdown container for measuring
   const dropdownRef = useRef(null);
 
@@ -69,10 +69,15 @@ const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
     today.setHours(0, 0, 0, 0); // Set to beginning of day for fair comparison
 
     // Validate start date is today or in the future
-    // Only for new projects or if the start date has been changed
-    if (!isEditMode && startDate && start < today) {
-      errors.startDate = "Start date must be today or in the future";
-      hasErrors = true;
+    // For new projects or if the start date has been changed in edit mode
+    if (startDate && start < today) {
+      // For existing projects, allow past dates if they haven't been changed
+      if (isEditMode && project && project.startDate === startDate) {
+        // This is fine - the date hasn't been changed
+      } else {
+        errors.startDate = "Start date must be today or in the future";
+        hasErrors = true;
+      }
     }
 
     // Validate end date is after start date
@@ -122,17 +127,17 @@ const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
     );
     // Keep the dropdown open after selection
   };
-  
+
   // Filter students based on search query
   const filteredStudents = studentsList.filter((student) =>
     student.toLowerCase().includes(studentSearchQuery.toLowerCase())
   );
-  
+
   // Toggle the dropdown
   const toggleStudentDropdown = () => {
     setShowStudentDropdown(!showStudentDropdown);
   };
-  
+
   // Close the dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -143,7 +148,7 @@ const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
         setShowStudentDropdown(false);
       }
     };
-    
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -310,7 +315,7 @@ const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
             <label className="block text-sm font-medium">
               Select Students * ({selectedStudents.length} selected)
             </label>
-            
+
             {/* Selected Students Pills */}
             {selectedStudents.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
@@ -335,7 +340,7 @@ const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
                 ))}
               </div>
             )}
-            
+
             {/* Search Input */}
             <div className="relative">
               <input
@@ -358,7 +363,7 @@ const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
                 {showStudentDropdown ? "▲" : "▼"}
               </button>
             </div>
-            
+
             {/* Dropdown List with Virtualization */}
             {showStudentDropdown && (
               <div
@@ -405,7 +410,9 @@ const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
                     }}
                   </List>
                 ) : (
-                  <div className="px-4 py-2 text-gray-500">No students found</div>
+                  <div className="px-4 py-2 text-gray-500">
+                    No students found
+                  </div>
                 )}
               </div>
             )}
@@ -497,7 +504,7 @@ const ProjectFormModal = ({ isOpen, onClose, onSubmit, project = null }) => {
               )}
             </div>
           </div>
-          
+
           {/* Project Status */}
           <div className="space-y-2">
             <label className="block text-sm font-medium">
