@@ -51,7 +51,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
     dueDate: "",
   });
 
-  const [message, setMessage] = useState({ text: "", color: "red" });
+  const [message, setMessage] = useState({ text: "", color: "" });
 
   // Reset form when modal is opened/closed
   useEffect(() => {
@@ -110,11 +110,16 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
       lastUpdated: new Date().toISOString(),
     };
 
+    // Show success message
+    setMessage({ text: "Task added successfully!", color: "green" });
+
+    // Call the onAddTask callback
     onAddTask(newTask);
 
+    // Close the modal after a short delay to show the success message
     setTimeout(() => {
       onClose();
-    }, 0);
+    }, 1000);
   };
 
   const handleChange = (e) => {
@@ -162,6 +167,12 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
           </button>
         </div>
 
+        {message.text && message.color === "red" && (
+          <div className="mb-4 p-3 bg-red-600 text-white rounded-md">
+            {message.text}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="block text-sm font-medium">Project Title *</label>
@@ -174,7 +185,6 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
                   ? "bg-gray-700 border-gray-600 text-white"
                   : "bg-gray-100 border-gray-300 text-gray-800"
               }`}
-              required
             >
               <option value="">Select a project</option>
               {projects.map((project) => (
@@ -198,7 +208,6 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
                   ? "bg-gray-700 border-gray-600 text-white"
                   : "bg-gray-100 border-gray-300 text-gray-800"
               }`}
-              required
             />
           </div>
 
@@ -231,7 +240,6 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
                   ? "bg-gray-700 border-gray-600 text-white"
                   : "bg-gray-100 border-gray-300 text-gray-800"
               }`}
-              required
             >
               <option value="">Select a student</option>
               {students.map((student) => (
@@ -253,7 +261,6 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
                   ? "bg-gray-700 border-gray-600 text-white"
                   : "bg-gray-100 border-gray-300 text-gray-800"
               }`}
-              required
             >
               <option value="">Select status</option>
               <option value="notStarted">Not Started</option>
@@ -288,14 +295,11 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
                   ? "bg-gray-700 text-white"
                   : "bg-gray-100 text-gray-800"
               }`}
-              required
             />
           </div>
 
-          {message.text && (
-            <div
-              className={`p-2 rounded-md text-center text-white bg-${message.color}-600`}
-            >
+          {message.text && message.color === "green" && (
+            <div className="mb-4 p-3 bg-green-600 text-white rounded-md">
               {message.text}
             </div>
           )}

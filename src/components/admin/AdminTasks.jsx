@@ -326,31 +326,42 @@ const AdminTasks = () => {
 
       {/* Confirm remove task modal */}
       {taskToRemove && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex justify-center items-center z-50">
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50">
           <div
-            className={`p-6 rounded-lg shadow-lg text-center ${
+            className={`p-6 rounded-lg w-full max-w-md ${
               isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
             }`}
           >
-            <p className="text-lg">
-              Are you sure you want to remove this task?
+            <h2 className="text-xl font-bold mb-4 text-red-500">
+              Confirm Deletion
+            </h2>
+            <p
+              className={`mb-6 ${
+                isDarkMode ? "text-gray-300" : "text-gray-600"
+              }`}
+            >
+              Are you sure you want to delete this task?
             </p>
-            <div className="mt-4 flex justify-center gap-4">
+            <div className="flex justify-end space-x-4">
               <button
                 onClick={() => setTaskToRemove(null)}
-                className="bg-gray-300 dark:bg-gray-700 text-black dark:text-white px-4 py-2 rounded hover:bg-gray-400 dark:hover:bg-gray-600 btn-hover-effect font-medium"
+                className={`px-4 py-2 rounded-lg ${
+                  isDarkMode
+                    ? "bg-gray-600 hover:bg-gray-500 text-white"
+                    : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                }`}
               >
                 Cancel
               </button>
               <button
                 onClick={removeTask}
-                className={`px-4 py-2 rounded btn-hover-effect font-medium ${
+                className={`px-4 py-2 rounded-lg ${
                   isDarkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-red-300"
                     : "bg-gray-200 hover:bg-gray-300 text-red-600"
                 }`}
               >
-                Yes, Remove
+                Confirm Delete
               </button>
             </div>
           </div>
