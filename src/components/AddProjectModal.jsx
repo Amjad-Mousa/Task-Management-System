@@ -1,5 +1,6 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { DarkModeContext } from "../Context/DarkModeContext";
+import { FixedSizeList as List } from "react-window";
 
 const generateId = () => "_" + Math.random().toString(36).substring(2, 11);
 
@@ -21,7 +22,8 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   // For demo purposes, we'll generate a larger list
   const generateStudentsList = () => {
     const students = [];
-    for (let i = 1; i <= 100; i++) {
+    // Generate 1000 students to demonstrate virtualization benefits
+    for (let i = 1; i <= 1000; i++) {
       students.push(`Student ${i}`);
     }
     return students;
@@ -29,8 +31,11 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
 
   const studentsList = generateStudentsList();
 
-  // Format date to YYYY-MM-DD for input type="date"
-  const formatDateForInput = (date) => {
+  // Reference to the dropdown container for measuring
+  const dropdownRef = useRef(null);
+
+  // Format date to YYYY-MM-DD for input type="date" and get today's date
+  const formatDateForInput = useCallback((date) => {
     const d = new Date(date);
     let month = "" + (d.getMonth() + 1);
     let day = "" + d.getDate();
@@ -40,12 +45,12 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
     if (day.length < 2) day = "0" + day;
 
     return [year, month, day].join("-");
-  };
+  }, []);
 
   // Get today's date formatted for input
-  const getTodayFormatted = () => {
+  const getTodayFormatted = useCallback(() => {
     return formatDateForInput(new Date());
-  };
+  }, [formatDateForInput]);
 
   // Validate dates
   const validateDates = () => {
@@ -87,7 +92,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
       setErrorMessage("");
       setDateErrors({ startDate: "", endDate: "" });
     }
-  }, [isOpen]);
+  }, [isOpen, getTodayFormatted]);
 
   const handleStudentSelect = (student) => {
     setSelectedStudents((prev) =>
@@ -316,39 +321,51 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
               </button>
             </div>
 
-            {/* Dropdown List */}
+            {/* Dropdown List with Virtualization */}
             {showStudentDropdown && (
               <div
-                className={`absolute z-10 w-full mt-1 max-h-60 overflow-y-auto rounded-md shadow-lg ${
+                ref={dropdownRef}
+                className={`absolute z-10 w-full mt-1 rounded-md shadow-lg ${
                   isDarkMode
                     ? "bg-gray-800 border border-gray-700"
                     : "bg-white border border-gray-200"
                 }`}
               >
                 {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student) => (
-                    <div
-                      key={student}
-                      onClick={() => handleStudentSelect(student)}
-                      className={`px-4 py-2 cursor-pointer flex items-center ${
-                        selectedStudents.includes(student)
-                          ? isDarkMode
-                            ? "bg-blue-900"
-                            : "bg-blue-100"
-                          : isDarkMode
-                          ? "hover:bg-gray-700"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedStudents.includes(student)}
-                        onChange={() => {}}
-                        className="mr-2"
-                      />
-                      <span>{student}</span>
-                    </div>
-                  ))
+                  <List
+                    height={140} // Fixed height for the virtualized list
+                    width="100%"
+                    itemCount={filteredStudents.length}
+                    itemSize={40} // Height of each item in pixels
+                    overscanCount={5} // Number of items to render outside of the visible area
+                  >
+                    {({ index, style }) => {
+                      const student = filteredStudents[index];
+                      return (
+                        <div
+                          style={style} // Important: This positions the item correctly
+                          onClick={() => handleStudentSelect(student)}
+                          className={`px-4 py-2 cursor-pointer flex items-center ${
+                            selectedStudents.includes(student)
+                              ? isDarkMode
+                                ? "bg-blue-900"
+                                : "bg-blue-100"
+                              : isDarkMode
+                              ? "hover:bg-gray-700"
+                              : "hover:bg-gray-100"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedStudents.includes(student)}
+                            onChange={() => {}}
+                            className="mr-2"
+                          />
+                          <span>{student}</span>
+                        </div>
+                      );
+                    }}
+                  </List>
                 ) : (
                   <div className="px-4 py-2 text-gray-500">
                     No students found

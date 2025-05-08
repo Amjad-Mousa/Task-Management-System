@@ -1,6 +1,7 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import PropTypes from "prop-types";
 import { DarkModeContext } from "../Context/DarkModeContext";
+import { FixedSizeList as List } from "react-window";
 
 /**
  * EditProjectModal component for updating existing projects
@@ -23,7 +24,8 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
   // For demo purposes, we'll generate a larger list
   const generateStudentsList = () => {
     const students = [];
-    for (let i = 1; i <= 100; i++) {
+    // Generate 1000 students to demonstrate virtualization benefits
+    for (let i = 1; i <= 1000; i++) {
       students.push(`Student ${i}`);
     }
     return students;
@@ -31,11 +33,14 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
 
   const studentsList = generateStudentsList();
 
+  // Reference to the dropdown container for measuring
+  const dropdownRef = useRef(null);
+
   // Helper function to get today's date in YYYY-MM-DD format
-  const getTodayFormatted = () => {
+  const getTodayFormatted = useCallback(() => {
     const today = new Date();
     return today.toISOString().split("T")[0];
-  };
+  }, []);
 
   // Validate dates
   const validateDates = () => {
@@ -256,45 +261,6 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
             ></textarea>
           </div>
 
-          {/* Project Category */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Project Category *
-            </label>
-            <input
-              type="text"
-              value={projectCategory}
-              onChange={(e) => setProjectCategory(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-md ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-50 border-gray-300 text-gray-800"
-              }`}
-              placeholder="E.g., Development, Design, Research"
-            />
-          </div>
-
-          {/* Project Status */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Project Status *
-            </label>
-            <select
-              value={projectStatus}
-              onChange={(e) => setProjectStatus(e.target.value)}
-              className={`w-full px-4 py-2 border rounded-md ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-50 border-gray-300 text-gray-800"
-              }`}
-            >
-              <option value="Not Started">Not Started</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Pending">Pending</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </div>
-
           {/* Students List - Searchable Dropdown */}
           <div className="space-y-2 student-dropdown-container relative">
             <label className="block text-sm font-medium">
@@ -349,39 +315,51 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
               </button>
             </div>
 
-            {/* Dropdown List */}
+            {/* Dropdown List with Virtualization */}
             {showStudentDropdown && (
               <div
-                className={`absolute z-10 w-full mt-1 max-h-60 overflow-y-auto rounded-md shadow-lg ${
+                ref={dropdownRef}
+                className={`absolute z-10 w-full mt-1 rounded-md shadow-lg ${
                   isDarkMode
                     ? "bg-gray-800 border border-gray-700"
                     : "bg-white border border-gray-200"
                 }`}
               >
                 {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student) => (
-                    <div
-                      key={student}
-                      onClick={() => handleStudentSelect(student)}
-                      className={`px-4 py-2 cursor-pointer flex items-center ${
-                        selectedStudents.includes(student)
-                          ? isDarkMode
-                            ? "bg-blue-900"
-                            : "bg-blue-100"
-                          : isDarkMode
-                          ? "hover:bg-gray-700"
-                          : "hover:bg-gray-100"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedStudents.includes(student)}
-                        onChange={() => {}}
-                        className="mr-2"
-                      />
-                      <span>{student}</span>
-                    </div>
-                  ))
+                  <List
+                    height={140} // Fixed height for the virtualized list
+                    width="100%"
+                    itemCount={filteredStudents.length}
+                    itemSize={40} // Height of each item in pixels
+                    overscanCount={5} // Number of items to render outside of the visible area
+                  >
+                    {({ index, style }) => {
+                      const student = filteredStudents[index];
+                      return (
+                        <div
+                          style={style} // Important: This positions the item correctly
+                          onClick={() => handleStudentSelect(student)}
+                          className={`px-4 py-2 cursor-pointer flex items-center ${
+                            selectedStudents.includes(student)
+                              ? isDarkMode
+                                ? "bg-blue-900"
+                                : "bg-blue-100"
+                              : isDarkMode
+                              ? "hover:bg-gray-700"
+                              : "hover:bg-gray-100"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedStudents.includes(student)}
+                            onChange={() => {}}
+                            className="mr-2"
+                          />
+                          <span>{student}</span>
+                        </div>
+                      );
+                    }}
+                  </List>
                 ) : (
                   <div className="px-4 py-2 text-gray-500">
                     No students found
@@ -389,6 +367,27 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Project Category */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
+              Project Category *
+            </label>
+            <select
+              value={projectCategory}
+              onChange={(e) => setProjectCategory(e.target.value)}
+              className={`w-full px-4 py-2 border rounded-md ${
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-white"
+                  : "bg-gray-50 border-gray-300 text-gray-800"
+              }`}
+            >
+              <option value="">Select a category</option>
+              <option value="Web Development">Web Development</option>
+              <option value="Mobile Development">Mobile Development</option>
+              <option value="Machine Learning">Machine Learning</option>
+            </select>
           </div>
 
           {/* Date Inputs */}
@@ -454,6 +453,27 @@ const EditProjectModal = ({ isOpen, onClose, onUpdateProject, project }) => {
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Project Status */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
+              Project Status *
+            </label>
+            <select
+              value={projectStatus}
+              onChange={(e) => setProjectStatus(e.target.value)}
+              className={`w-full px-4 py-2 border rounded-md ${
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-white"
+                  : "bg-gray-50 border-gray-300 text-gray-800"
+              }`}
+            >
+              <option value="Not Started">Not Started</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
+            </select>
           </div>
 
           {/* Submit Button */}
