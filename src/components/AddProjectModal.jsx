@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import { DarkModeContext } from "../Context/DarkModeContext";
 
-const generateId = () => "_" + Math.random().toString(36).substr(2, 9);
+const generateId = () => "_" + Math.random().toString(36).substring(2, 11);
 
 const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   const { isDarkMode } = useContext(DarkModeContext);
@@ -13,6 +13,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   const [endDate, setEndDate] = useState("");
   const [projectStatus, setProjectStatus] = useState("Not Started");
   const [errorMessage, setErrorMessage] = useState("");
+  const [dateErrors, setDateErrors] = useState({ startDate: "", endDate: "" });
 
   const studentsList = [
     "Student 1",
@@ -22,6 +23,51 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
     "Student 5",
   ];
 
+  // Format date to YYYY-MM-DD for input type="date"
+  const formatDateForInput = (date) => {
+    const d = new Date(date);
+    let month = "" + (d.getMonth() + 1);
+    let day = "" + d.getDate();
+    const year = d.getFullYear();
+
+    if (month.length < 2) month = "0" + month;
+    if (day.length < 2) day = "0" + day;
+
+    return [year, month, day].join("-");
+  };
+
+  // Get today's date formatted for input
+  const getTodayFormatted = () => {
+    return formatDateForInput(new Date());
+  };
+
+  // Validate dates
+  const validateDates = () => {
+    const errors = { startDate: "", endDate: "" };
+    let hasErrors = false;
+
+    // Convert string dates to Date objects for comparison
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to beginning of day for fair comparison
+
+    // Validate start date is today or in the future
+    if (startDate && start < today) {
+      errors.startDate = "Start date must be today or in the future";
+      hasErrors = true;
+    }
+
+    // Validate end date is after start date
+    if (startDate && endDate && end <= start) {
+      errors.endDate = "End date must be after start date";
+      hasErrors = true;
+    }
+
+    setDateErrors(errors);
+    return !hasErrors;
+  };
+
   // Reset form when modal is opened/closed
   useEffect(() => {
     if (isOpen) {
@@ -29,10 +75,11 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
       setProjectDescription("");
       setSelectedStudents([]);
       setProjectCategory("");
-      setStartDate("");
+      setStartDate(getTodayFormatted()); // Set today as default start date
       setEndDate("");
       setProjectStatus("Not Started");
       setErrorMessage("");
+      setDateErrors({ startDate: "", endDate: "" });
     }
   }, [isOpen]);
 
@@ -47,6 +94,11 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // Reset error messages
+    setErrorMessage("");
+    setDateErrors({ startDate: "", endDate: "" });
+
+    // Check required fields
     if (
       !projectTitle ||
       !projectDescription ||
@@ -56,6 +108,13 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
       !endDate
     ) {
       setErrorMessage("Please fill out all required fields");
+      return;
+    }
+
+    // Validate dates
+    if (!validateDates()) {
+      // If there are date validation errors, show the general error message
+      setErrorMessage("Please fix the date errors before submitting");
       return;
     }
 
@@ -82,6 +141,7 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
       status: projectStatus,
       progress: progressValue,
       tasks: [],
+      lastUpdated: new Date().toISOString(),
     };
 
     onAddProject(newProject);
@@ -227,26 +287,62 @@ const AddProjectModal = ({ isOpen, onClose, onAddProject }) => {
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                min={getTodayFormatted()} // Set minimum date to today
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  // Clear error when user changes the value
+                  if (dateErrors.startDate) {
+                    setDateErrors({ ...dateErrors, startDate: "" });
+                  }
+                }}
                 className={`w-full px-4 py-2 border rounded-md ${
+                  dateErrors.startDate
+                    ? "border-red-500"
+                    : isDarkMode
+                    ? "border-gray-600"
+                    : "border-gray-300"
+                } ${
                   isDarkMode
-                    ? "bg-gray-700 border-gray-600 text-white"
-                    : "bg-gray-50 border-gray-300 text-gray-800"
+                    ? "bg-gray-700 text-white"
+                    : "bg-gray-50 text-gray-800"
                 }`}
               />
+              {dateErrors.startDate && (
+                <p className="text-red-500 text-xs mt-1">
+                  {dateErrors.startDate}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="block text-sm font-medium">End Date *</label>
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate || getTodayFormatted()} // End date must be at least the start date
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  // Clear error when user changes the value
+                  if (dateErrors.endDate) {
+                    setDateErrors({ ...dateErrors, endDate: "" });
+                  }
+                }}
                 className={`w-full px-4 py-2 border rounded-md ${
+                  dateErrors.endDate
+                    ? "border-red-500"
+                    : isDarkMode
+                    ? "border-gray-600"
+                    : "border-gray-300"
+                } ${
                   isDarkMode
-                    ? "bg-gray-700 border-gray-600 text-white"
-                    : "bg-gray-50 border-gray-300 text-gray-800"
+                    ? "bg-gray-700 text-white"
+                    : "bg-gray-50 text-gray-800"
                 }`}
               />
+              {dateErrors.endDate && (
+                <p className="text-red-500 text-xs mt-1">
+                  {dateErrors.endDate}
+                </p>
+              )}
             </div>
           </div>
 

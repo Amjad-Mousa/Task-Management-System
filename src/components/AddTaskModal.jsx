@@ -3,6 +3,33 @@ import { DarkModeContext } from "../Context/DarkModeContext";
 
 const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
   const { isDarkMode } = useContext(DarkModeContext);
+
+  // Format date to YYYY-MM-DD for input type="date"
+  const formatDateForInput = (date) => {
+    const d = new Date(date);
+    let month = "" + (d.getMonth() + 1);
+    let day = "" + d.getDate();
+    const year = d.getFullYear();
+
+    if (month.length < 2) month = "0" + month;
+    if (day.length < 2) day = "0" + day;
+
+    return [year, month, day].join("-");
+  };
+
+  // Get today's date formatted for input
+  const getTodayFormatted = () => {
+    return formatDateForInput(new Date());
+  };
+
+  // Validate due date is today or in the future
+  const validateDueDate = (dateString) => {
+    const dueDate = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to beginning of day for fair comparison
+
+    return dueDate >= today;
+  };
   const [projects] = useState([
     "Website Redesign",
     "Mobile App Development",
@@ -35,7 +62,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
         description: "",
         assignedStudent: "",
         status: "notStarted", // Default to Not Started
-        dueDate: "",
+        dueDate: getTodayFormatted(), // Set today as default due date
       });
       setMessage({ text: "", color: "red" });
     }
@@ -44,6 +71,10 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // Reset message
+    setMessage({ text: "", color: "red" });
+
+    // Check required fields
     if (
       !formData.project ||
       !formData.taskName ||
@@ -52,6 +83,15 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
       !formData.dueDate
     ) {
       setMessage({ text: "Please fill out all required fields", color: "red" });
+      return;
+    }
+
+    // Validate due date is today or in the future
+    if (!validateDueDate(formData.dueDate)) {
+      setMessage({
+        text: "Due date must be today or in the future",
+        color: "red",
+      });
       return;
     }
 
@@ -67,6 +107,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
       id: Date.now(),
       ...formData,
       status: formattedStatus,
+      lastUpdated: new Date().toISOString(),
     };
 
     onAddTask(newTask);
@@ -228,11 +269,24 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
               type="date"
               name="dueDate"
               value={formData.dueDate}
-              onChange={handleChange}
+              min={getTodayFormatted()} // Set minimum date to today
+              onChange={(e) => {
+                handleChange(e);
+                // Clear error message when user changes the date
+                if (message.text.includes("due date")) {
+                  setMessage({ text: "", color: "red" });
+                }
+              }}
               className={`w-full p-2 border rounded-md ${
+                message.text.includes("due date")
+                  ? "border-red-500"
+                  : isDarkMode
+                  ? "border-gray-600"
+                  : "border-gray-300"
+              } ${
                 isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-100 border-gray-300 text-gray-800"
+                  ? "bg-gray-700 text-white"
+                  : "bg-gray-100 text-gray-800"
               }`}
               required
             />
