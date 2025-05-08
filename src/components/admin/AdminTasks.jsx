@@ -246,7 +246,7 @@ const AdminTasks = () => {
               className={`px-3 py-1 rounded tooltip ${
                 isDarkMode
                   ? "bg-gray-700 hover:bg-gray-600 text-red-300/80"
-                  : "bg-gray-200 hover:bg-gray-300 text-red-500/80"
+                  : "bg-red-100 hover:bg-red-200 text-red-700 border border-red-200"
               } btn-hover-effect`}
               data-tooltip="Remove this task"
             >
@@ -439,7 +439,7 @@ const AdminTasks = () => {
                 className={`px-4 py-2 rounded-lg ${
                   isDarkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-red-300/80"
-                    : "bg-gray-200 hover:bg-gray-300 text-red-500/80"
+                    : "bg-red-100 hover:bg-red-200 text-red-700 border border-red-200"
                 }`}
               >
                 Confirm Delete

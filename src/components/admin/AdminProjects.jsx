@@ -160,7 +160,7 @@ const AdminProjects = () => {
                 <div className="mt-2">
                   <span className="font-medium mb-1 block">Progress:</span>
                   <div
-                    className={`px-3 py-2 rounded-lg text-white text-center ${getStatusColor(
+                    className={`px-3 py-2 rounded-lg text-center ${getStatusColor(
                       getStatusFromProgress(project.progress, project.status),
                       isDarkMode
                     )}`}
@@ -200,7 +200,7 @@ const AdminProjects = () => {
                 className={`px-4 py-2 rounded-lg ${
                   isDarkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-red-300/80"
-                    : "bg-gray-200 hover:bg-gray-300 text-red-500/80"
+                    : "bg-red-100 hover:bg-red-200 text-red-700 border border-red-200"
                 }`}
               >
                 Delete
@@ -402,7 +402,7 @@ const AdminProjects = () => {
                 <div className="col-span-1 md:col-span-2">
                   <h4 className="font-semibold mb-2">Progress</h4>
                   <p
-                    className={`px-4 py-2 rounded-lg text-white w-full text-center ${getStatusColor(
+                    className={`px-4 py-2 rounded-lg w-full text-center ${getStatusColor(
                       getStatusFromProgress(
                         selectedProject.progress,
                         selectedProject.status
@@ -494,7 +494,7 @@ const AdminProjects = () => {
                 className={`px-4 py-2 rounded-lg ${
                   isDarkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-red-300/80"
-                    : "bg-gray-200 hover:bg-gray-300 text-red-500/80"
+                    : "bg-red-100 hover:bg-red-200 text-red-700 border border-red-200"
                 }`}
               >
                 Confirm Delete

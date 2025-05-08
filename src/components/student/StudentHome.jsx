@@ -338,10 +338,10 @@ const TaskItem = ({ task }) => {
             <h3 className="text-lg font-medium">{task.title}</h3>
             {isOverdue && (
               <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
+                className={`text-xs px-2 py-0.5 rounded-full border ${
                   isDarkMode
-                    ? "bg-red-900/50 text-red-300"
-                    : "bg-red-100 text-red-600"
+                    ? "bg-red-900/30 text-red-300 border-red-800"
+                    : "bg-red-100 text-red-700 border-red-200"
                 }`}
               >
                 Overdue
@@ -349,10 +349,10 @@ const TaskItem = ({ task }) => {
             )}
             {isUrgent && !isOverdue && (
               <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
+                className={`text-xs px-2 py-0.5 rounded-full border ${
                   isDarkMode
-                    ? "bg-yellow-900/50 text-yellow-300"
-                    : "bg-yellow-100 text-yellow-600"
+                    ? "bg-yellow-900/30 text-yellow-300 border-yellow-800"
+                    : "bg-yellow-100 text-yellow-700 border-yellow-200"
                 }`}
               >
                 Urgent

@@ -285,19 +285,35 @@ const AdminHome = () => {
             {Object.entries(taskStatusCounts).map(([status, count]) => (
               <div
                 key={status}
-                className={`p-3 rounded-lg text-center ${
-                  isDarkMode ? "bg-gray-800" : "bg-gray-100"
+                className={`p-3 rounded-lg text-center border ${
+                  isDarkMode
+                    ? "bg-gray-800 border-gray-700"
+                    : status === "Completed"
+                    ? "bg-green-100 border-green-200"
+                    : status === "In Progress"
+                    ? "bg-yellow-100 border-yellow-200"
+                    : status === "Pending"
+                    ? "bg-gray-100 border-gray-200"
+                    : "bg-red-100 border-red-200"
                 }`}
               >
                 <div
                   className={`text-2xl font-bold mb-1 ${
                     status === "Completed"
-                      ? "text-green-500"
+                      ? isDarkMode
+                        ? "text-green-500"
+                        : "text-green-700"
                       : status === "In Progress"
-                      ? "text-yellow-500"
+                      ? isDarkMode
+                        ? "text-yellow-500"
+                        : "text-yellow-700"
                       : status === "Pending"
-                      ? "text-gray-500"
-                      : "text-red-500"
+                      ? isDarkMode
+                        ? "text-gray-500"
+                        : "text-gray-700"
+                      : isDarkMode
+                      ? "text-red-500"
+                      : "text-red-700"
                   }`}
                 >
                   {count}
@@ -310,7 +326,9 @@ const AdminHome = () => {
             <div className="w-full bg-gray-300 dark:bg-gray-700 h-2 rounded-full">
               <div className="flex h-2">
                 <div
-                  className="bg-red-500 h-2 rounded-l-full"
+                  className={`${
+                    isDarkMode ? "bg-red-500" : "bg-red-400"
+                  } h-2 rounded-l-full`}
                   style={{
                     width: `${
                       (taskStatusCounts["Not Started"] / stats.tasksCount) * 100
@@ -320,7 +338,9 @@ const AdminHome = () => {
                   }}
                 ></div>
                 <div
-                  className="bg-gray-500 h-2"
+                  className={`${
+                    isDarkMode ? "bg-gray-500" : "bg-gray-400"
+                  } h-2`}
                   style={{
                     width: `${
                       (taskStatusCounts["Pending"] / stats.tasksCount) * 100
@@ -329,7 +349,9 @@ const AdminHome = () => {
                   }}
                 ></div>
                 <div
-                  className="bg-yellow-500 h-2"
+                  className={`${
+                    isDarkMode ? "bg-yellow-500" : "bg-yellow-400"
+                  } h-2`}
                   style={{
                     width: `${
                       (taskStatusCounts["In Progress"] / stats.tasksCount) * 100
@@ -339,7 +361,9 @@ const AdminHome = () => {
                   }}
                 ></div>
                 <div
-                  className="bg-green-500 h-2 rounded-r-full"
+                  className={`${
+                    isDarkMode ? "bg-green-500" : "bg-green-400"
+                  } h-2 rounded-r-full`}
                   style={{
                     width: `${
                       (taskStatusCounts["Completed"] / stats.tasksCount) * 100
