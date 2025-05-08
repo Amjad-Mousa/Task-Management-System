@@ -1,12 +1,59 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useCallback } from "react";
+import PropTypes from "prop-types";
 import { DarkModeContext } from "../Context/DarkModeContext";
 
-const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
+/**
+ * TaskFormModal component for adding or editing tasks
+ */
+const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
+  const isEditMode = !!task;
   const { isDarkMode } = useContext(DarkModeContext);
+  const [message, setMessage] = useState({ text: "", color: "red" });
+  const [formData, setFormData] = useState({
+    project: "",
+    taskName: "",
+    description: "",
+    assignedStudent: "",
+    status: "Not Started",
+    dueDate: "",
+  });
+
+  // List of projects (would ideally come from an API or context)
+  const projects = [
+    "Website Redesign",
+    "Mobile App Development",
+    "E-commerce Platform",
+    "Database Migration",
+    "API Integration",
+  ];
+
+  // List of students (would ideally come from an API or context)
+  const students = [
+    "All Yaseen",
+    "Braz Aeesh",
+    "Ibn Al-Jawzee",
+    "Ayman Oulom",
+    "Zayd Thabit",
+  ];
 
   // Format date to YYYY-MM-DD for input type="date"
-  const formatDateForInput = (date) => {
+  const formatDateForInput = useCallback((date) => {
+    if (!date) return "";
+    
     const d = new Date(date);
+    // Check if date is valid
+    if (isNaN(d.getTime())) {
+      // Try to parse MM/DD/YYYY format
+      const parts = date.split("/");
+      if (parts.length === 3) {
+        const month = parts[0].padStart(2, "0");
+        const day = parts[1].padStart(2, "0");
+        const year = parts[2];
+        return `${year}-${month}-${day}`;
+      }
+      return "";
+    }
+    
     let month = "" + (d.getMonth() + 1);
     let day = "" + d.getDate();
     const year = d.getFullYear();
@@ -15,58 +62,59 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
     if (day.length < 2) day = "0" + day;
 
     return [year, month, day].join("-");
-  };
+  }, []);
 
   // Get today's date formatted for input
-  const getTodayFormatted = () => {
+  const getTodayFormatted = useCallback(() => {
     return formatDateForInput(new Date());
-  };
+  }, [formatDateForInput]);
 
   // Validate due date is today or in the future
-  const validateDueDate = (dateString) => {
-    const dueDate = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to beginning of day for fair comparison
+  const validateDueDate = (date) => {
+    if (!date) return false;
 
+    const dueDate = new Date(date);
+    const today = new Date();
+    
+    // Reset time to compare dates only
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    
+    // For existing tasks, allow past dates if they haven't been changed
+    if (isEditMode && task && task.dueDate === formData.dueDate) {
+      return true;
+    }
+    
     return dueDate >= today;
   };
-  const [projects] = useState([
-    "Website Redesign",
-    "Mobile App Development",
-    "E-commerce Platform",
-  ]);
-  const [students] = useState([
-    "All Yaseen",
-    "Braz Aeesh",
-    "Ibn Al-Jawzee",
-    "Ibn Malik",
-    "Ayman Oulom",
-  ]);
-  const [formData, setFormData] = useState({
-    project: "",
-    taskName: "",
-    description: "",
-    assignedStudent: "",
-    status: "notStarted", // Default to Not Started
-    dueDate: "",
-  });
 
-  const [message, setMessage] = useState({ text: "", color: "" });
-
-  // Reset form when modal is opened/closed
+  // Initialize form with task data when modal opens
   useEffect(() => {
     if (isOpen) {
-      setFormData({
-        project: "",
-        taskName: "",
-        description: "",
-        assignedStudent: "",
-        status: "notStarted", // Default to Not Started
-        dueDate: getTodayFormatted(), // Set today as default due date
-      });
+      if (isEditMode && task) {
+        // Edit mode - fill form with task data
+        setFormData({
+          project: task.project || "",
+          taskName: task.taskName || "",
+          description: task.description || "",
+          assignedStudent: task.assignedStudent || "",
+          status: task.status || "Not Started",
+          dueDate: formatDateForInput(task.dueDate) || "",
+        });
+      } else {
+        // Add mode - reset form
+        setFormData({
+          project: "",
+          taskName: "",
+          description: "",
+          assignedStudent: "",
+          status: "Not Started",
+          dueDate: getTodayFormatted(),
+        });
+      }
       setMessage({ text: "", color: "red" });
     }
-  }, [isOpen]);
+  }, [isOpen, task, isEditMode, formatDateForInput, getTodayFormatted]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -95,26 +143,44 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
       return;
     }
 
-    const formattedStatus = formData.status
-      .replace(/([A-Z])/g, " $1")
-      .trim()
-      .toLowerCase()
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-
-    const newTask = {
-      id: Date.now(),
-      ...formData,
-      status: formattedStatus,
-      lastUpdated: new Date().toISOString(),
+    // Format the date for display (MM/DD/YYYY)
+    const formatDateForDisplay = (dateString) => {
+      const date = new Date(dateString);
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const year = date.getFullYear();
+      return `${month}/${day}/${year}`;
     };
 
-    // Show success message
-    setMessage({ text: "Task added successfully!", color: "green" });
-
-    // Call the onAddTask callback
-    onAddTask(newTask);
+    if (isEditMode) {
+      // Update existing task
+      const updatedTask = {
+        ...task,
+        ...formData,
+        dueDate: formatDateForDisplay(formData.dueDate),
+        lastUpdated: new Date().toISOString(),
+      };
+      
+      // Show success message
+      setMessage({ text: "Task updated successfully!", color: "green" });
+      
+      // Call the onSubmit callback
+      onSubmit(updatedTask);
+    } else {
+      // Create new task
+      const newTask = {
+        id: Date.now(),
+        ...formData,
+        dueDate: formatDateForDisplay(formData.dueDate),
+        lastUpdated: new Date().toISOString(),
+      };
+      
+      // Show success message
+      setMessage({ text: "Task added successfully!", color: "green" });
+      
+      // Call the onSubmit callback
+      onSubmit(newTask);
+    }
 
     // Close the modal after a short delay to show the success message
     setTimeout(() => {
@@ -127,6 +193,11 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    
+    // Clear error message when user changes a field
+    if (message.text) {
+      setMessage({ text: "", color: "red" });
+    }
   };
 
   if (!isOpen) return null;
@@ -144,7 +215,7 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
               isDarkMode ? "text-blue-400" : "text-blue-600"
             }`}
           >
-            Create New Task
+            {isEditMode ? "Edit Task" : "Create New Task"}
           </h2>
           <button
             onClick={onClose}
@@ -218,19 +289,17 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
               value={formData.description}
               onChange={handleChange}
               placeholder="Enter task description"
-              className={`w-full p-2 border rounded-md ${
+              rows={3}
+              className={`w-full p-2 border rounded-md resize-none ${
                 isDarkMode
                   ? "bg-gray-700 border-gray-600 text-white"
                   : "bg-gray-100 border-gray-300 text-gray-800"
               }`}
-              rows="3"
-            />
+            ></textarea>
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Assigned Student *
-            </label>
+            <label className="block text-sm font-medium">Assigned To *</label>
             <select
               name="assignedStudent"
               value={formData.assignedStudent}
@@ -262,11 +331,10 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
                   : "bg-gray-100 border-gray-300 text-gray-800"
               }`}
             >
-              <option value="">Select status</option>
-              <option value="notStarted">Not Started</option>
-              <option value="inProgress">In Progress</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
+              <option value="Not Started">Not Started</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Pending">Pending</option>
+              <option value="Completed">Completed</option>
             </select>
           </div>
 
@@ -276,14 +344,8 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
               type="date"
               name="dueDate"
               value={formData.dueDate}
-              min={getTodayFormatted()} // Set minimum date to today
-              onChange={(e) => {
-                handleChange(e);
-                // Clear error message when user changes the date
-                if (message.text.includes("due date")) {
-                  setMessage({ text: "", color: "red" });
-                }
-              }}
+              min={!isEditMode ? getTodayFormatted() : undefined} // Only set min date for new tasks
+              onChange={handleChange}
               className={`w-full p-2 border rounded-md ${
                 message.text.includes("due date")
                   ? "border-red-500"
@@ -318,9 +380,9 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
             </button>
             <button
               type="submit"
-              className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
+              className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
             >
-              Add Task
+              {isEditMode ? "Update Task" : "Add Task"}
             </button>
           </div>
         </form>
@@ -329,4 +391,11 @@ const AddTaskModal = ({ isOpen, onClose, onAddTask }) => {
   );
 };
 
-export default AddTaskModal;
+TaskFormModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  task: PropTypes.object,
+};
+
+export default TaskFormModal;

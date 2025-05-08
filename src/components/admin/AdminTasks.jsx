@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from "react";
 import { DarkModeContext } from "../../Context/DarkModeContext";
 import { DashboardLayout } from "../layout";
-import AddTaskModal from "../AddTaskModal";
+import TaskFormModal from "../TaskFormModal";
 import {
   getStatusColor,
   sortItems,
@@ -18,7 +18,8 @@ const AdminTasks = () => {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [taskToRemove, setTaskToRemove] = useState(null);
-  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
@@ -92,14 +93,30 @@ const AdminTasks = () => {
     setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
 
-  const handleAddTask = (newTask) => {
-    setTasks((prevTasks) => [...prevTasks, newTask]);
+  const handleTaskSubmit = (taskData) => {
+    let updatedTasks;
+    let successMsg;
 
-    // Also save to localStorage
-    const existingTasks = JSON.parse(localStorage.getItem("tasks")) || [];
-    localStorage.setItem("tasks", JSON.stringify([...existingTasks, newTask]));
+    if (taskToEdit) {
+      // Update existing task
+      updatedTasks = tasks.map((task) =>
+        task.id === taskData.id ? taskData : task
+      );
+      successMsg = "Task updated successfully!";
+    } else {
+      // Add new task
+      updatedTasks = [...tasks, taskData];
+      successMsg = "Task added successfully!";
+    }
 
-    setSuccessMessage("Task added successfully!");
+    setTasks(updatedTasks);
+
+    // Save to localStorage
+    localStorage.setItem("tasks", JSON.stringify(updatedTasks));
+
+    setSuccessMessage(successMsg);
+    setIsTaskModalOpen(false);
+    setTaskToEdit(null);
     setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
 
@@ -133,7 +150,10 @@ const AdminTasks = () => {
 
         <button
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 btn-hover-effect tooltip flex items-center gap-2"
-          onClick={() => setIsAddTaskModalOpen(true)}
+          onClick={() => {
+            setTaskToEdit(null); // Ensure we're in "add" mode
+            setIsTaskModalOpen(true);
+          }}
           data-tooltip="Create a new task"
         >
           <span>➕</span>
@@ -253,7 +273,11 @@ const AdminTasks = () => {
               return filteredTasks.map((task) => (
                 <tr
                   key={task.id}
-                  className="table-row-hover transition-colors duration-150"
+                  className="table-row-hover transition-colors duration-150 cursor-pointer"
+                  onClick={() => {
+                    setTaskToEdit(task);
+                    setIsTaskModalOpen(true);
+                  }}
                 >
                   <td
                     className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
@@ -304,9 +328,13 @@ const AdminTasks = () => {
                     className={`px-6 py-4 whitespace-nowrap text-sm ${
                       isDarkMode ? "text-gray-300" : "text-gray-700"
                     }`}
+                    onClick={(e) => e.stopPropagation()} // Prevent row click when clicking the button
                   >
                     <button
-                      onClick={() => setTaskToRemove(task.id)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent row click
+                        setTaskToRemove(task.id);
+                      }}
                       className={`px-3 py-1 rounded tooltip ${
                         isDarkMode
                           ? "bg-gray-700 hover:bg-gray-600 text-red-300"
@@ -368,11 +396,15 @@ const AdminTasks = () => {
         </div>
       )}
 
-      {/* Add Task Modal */}
-      <AddTaskModal
-        isOpen={isAddTaskModalOpen}
-        onClose={() => setIsAddTaskModalOpen(false)}
-        onAddTask={handleAddTask}
+      {/* Task Form Modal (Add/Edit) */}
+      <TaskFormModal
+        isOpen={isTaskModalOpen}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setTaskToEdit(null);
+        }}
+        onSubmit={handleTaskSubmit}
+        task={taskToEdit}
       />
     </DashboardLayout>
   );
