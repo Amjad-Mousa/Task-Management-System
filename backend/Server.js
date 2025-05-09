@@ -1,33 +1,34 @@
 import mongoose from "mongoose";
+import "./models/taskModel.js";
+import "./models/userModel.js";
+import "./models/adminModel.js";
+import "./models/studentModel.js";
+import "./models/projectModel.js";
+import "./models/messageModel.js";
 
-// رابط الاتصال بقاعدة البيانات MongoDB
-const mongoURI="mongodb+srv://TMS_Admin:TMS_Admin_2025@database.u7t0edf.mongodb.net/myDatabase?retryWrites=true&w=majority";
-// الاتصال بقاعدة البيانات MongoDB
+const mongoURI = "mongodb+srv://TMS_Admin:TMS_Admin_2025@database.u7t0edf.mongodb.net/myDatabase?retryWrites=true&w=majority";
+
 mongoose.connect(mongoURI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
   .then(() => {
-    console.log("تم الاتصال بقاعدة البيانات MongoDB بنجاح");
+    console.log("Successfully connected to MongoDB");
   })
   .catch((err) => {
-    console.error("فشل الاتصال بقاعدة البيانات MongoDB:", err.message);
+    console.error("Failed to connect to MongoDB:", err.message);
   });
 
-// التحقق من حالة الاتصال
 const db = mongoose.connection;
 
-// التحقق من حالة الاتصال
 db.on("error", (err) => {
-  console.error("حدث خطأ في الاتصال:", err);
+  console.error("Connection error:", err);
 });
 
-// حالة الاتصال الناجحة
 db.once("open", () => {
-  console.log("تم الاتصال بقاعدة البيانات بنجاح!");
+  console.log("Successfully connected to the database!");
 });
 
-// التحقق من حالة الاتصال بشكل ديناميكي
 setInterval(() => {
-  console.log(`حالة الاتصال الحالية: ${mongoose.connection.readyState}`);
-}, 5000); // يتم التحقق كل 5 ثواني
+  console.log(`Current connection status: ${mongoose.connection.readyState}`);
+}, 5000);
