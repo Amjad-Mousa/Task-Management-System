@@ -30,4 +30,13 @@ export default [
       ],
     },
   },
+  // Add Node.js environment for backend files
+  {
+    files: ['backend/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node
+      }
+    }
+  }
 ]

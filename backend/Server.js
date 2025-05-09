@@ -1,4 +1,10 @@
+import express from "express";
 import mongoose from "mongoose";
+import cors from "cors";
+import dotenv from "dotenv";
+
+dotenv.config();
+
 import "./models/taskModel.js";
 import "./models/userModel.js";
 import "./models/adminModel.js";
@@ -6,9 +12,11 @@ import "./models/studentModel.js";
 import "./models/projectModel.js";
 import "./models/messageModel.js";
 
-const mongoURI = "mongodb+srv://TMS_Admin:TMS_Admin_2025@database.u7t0edf.mongodb.net/myDatabase?retryWrites=true&w=majority";
+const app = express();
 
-mongoose.connect(mongoURI, {
+app.use(cors());
+
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
