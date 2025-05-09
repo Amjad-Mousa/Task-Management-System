@@ -12,14 +12,14 @@ import "./models/studentModel.js";
 import "./models/projectModel.js";
 import "./models/messageModel.js";
 
+// Set up express app
 const app = express();
 
+// CORS middleware
 app.use(cors());
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+// Establish mongoose connection
+mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("Successfully connected to MongoDB");
   })
