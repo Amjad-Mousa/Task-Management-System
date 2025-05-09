@@ -112,6 +112,7 @@ export default function SignUp() {
             value={values.universityId}
             onChange={handleChange}
             error={errors.universityId}
+            required
           />
         )}
 

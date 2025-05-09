@@ -90,14 +90,14 @@ const DashboardChart = ({ stats, highlightIndex }) => {
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     animation: {
       duration: 500, // Animation duration in milliseconds
       easing: "easeOutQuad", // Easing function
     },
     plugins: {
       title: {
-        display: true,
-        text: "Statistics Overview",
+        display: false, // Removed title as we have one in the Card
       },
       tooltip: {
         callbacks: {
@@ -115,7 +115,7 @@ const DashboardChart = ({ stats, highlightIndex }) => {
   };
 
   return (
-    <div className="chart-container">
+    <div className="chart-container" style={{ height: "400px", width: "100%" }}>
       <Bar data={data} options={options} />
     </div>
   );

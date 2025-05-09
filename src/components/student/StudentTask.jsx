@@ -1,7 +1,11 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef, useCallback } from "react";
 import { DashboardLayout } from "../layout";
-import { Card, Select, StatusBadge } from "../ui";
+import { Card, Select, StatusBadge, Modal } from "../ui";
 import { DarkModeContext } from "../../Context/DarkModeContext";
+import StatusUpdateModal from "./StatusUpdateModal";
+import { FixedSizeList as List } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
+import { getSearchInputClasses } from "../../utils/adminUtils";
 
 /**
  * StudentTask component for student task management
@@ -9,9 +13,27 @@ import { DarkModeContext } from "../../Context/DarkModeContext";
 const StudentTask = () => {
   const { isDarkMode } = useContext(DarkModeContext);
   const [tasks, setTasks] = useState([]);
+  const [sortConfig, setSortConfig] = useState({
+    key: "dueDate",
+    direction: "asc",
+  });
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedTask, setSelectedTask] = useState(null);
-  const [sortedTasks, setSortedTasks] = useState([]);
-  const [sortBy, setSortBy] = useState("dueDate"); // Sorting by 'dueDate' or 'status'
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const SUCCESS_MESSAGE_TIMEOUT = 3000;
+
+  // Reference for the virtualized list
+  const listRef = useRef(null);
+
+  // Column definitions for the table
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const columns = [
+    { display: "Task", key: "title", width: "25%", align: "left" },
+    { display: "Description", key: "description", width: "40%", align: "left" },
+    { display: "Status", key: "status", width: "15%", align: "left" },
+    { display: "Due Date", key: "dueDate", width: "20%", align: "left" },
+  ];
 
   useEffect(() => {
     document.title = "Student Tasks | Task Manager";
@@ -53,159 +75,277 @@ const StudentTask = () => {
       },
     ];
     setTasks(studentTasks);
-    setSortedTasks(studentTasks); // Initialize sorted tasks
   }, []);
 
-  const handleSort = (sortBy) => {
-    const sorted = [...tasks].sort((a, b) => {
-      if (sortBy === "dueDate") {
-        return new Date(a.dueDate) - new Date(b.dueDate);
-      } else if (sortBy === "status") {
+  const sortTasks = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortedTasks = useCallback(() => {
+    // First filter tasks based on search query
+    const filteredTasks = tasks.filter((task) => {
+      if (!searchQuery.trim()) return true;
+
+      const query = searchQuery.toLowerCase().trim();
+      return (
+        (task.title && task.title.toLowerCase().includes(query)) ||
+        (task.description && task.description.toLowerCase().includes(query)) ||
+        (task.status && task.status.toLowerCase().includes(query))
+      );
+    });
+
+    // Then sort the filtered tasks
+    const { key, direction } = sortConfig;
+    const sortedTasks = [...filteredTasks].sort((a, b) => {
+      if (key === "dueDate") {
+        return direction === "asc"
+          ? new Date(a.dueDate) - new Date(b.dueDate)
+          : new Date(b.dueDate) - new Date(a.dueDate);
+      } else if (key === "status") {
         const statusOrder = [
           "Not Started",
           "Pending",
           "In Progress",
           "Completed",
         ];
-        return statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status);
+        return direction === "asc"
+          ? statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)
+          : statusOrder.indexOf(b.status) - statusOrder.indexOf(a.status);
+      } else if (key === "title") {
+        return direction === "asc"
+          ? a.title.localeCompare(b.title)
+          : b.title.localeCompare(a.title);
       }
       return 0;
     });
+    return sortedTasks;
+  }, [tasks, searchQuery, sortConfig]);
 
-    setSortBy(sortBy);
-    setSortedTasks(sorted);
-  };
-
-  const handleTaskClick = (taskId) => {
-    // If the clicked task is already selected, close the details
-    if (selectedTask && selectedTask.id === taskId) {
-      setSelectedTask(null);
-    } else {
-      // Otherwise, show the details for the clicked task
+  const handleTaskClick = useCallback(
+    (taskId) => {
       const task = tasks.find((task) => task.id === taskId);
       setSelectedTask(task);
-    }
+      setIsStatusModalOpen(true);
+    },
+    [tasks]
+  );
+
+  const handleUpdateStatus = (taskId, newStatus) => {
+    setTasks((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
+    );
+    setSuccessMessage("Task status updated successfully!");
+    setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
 
-  const handleCloseDetails = () => {
-    setSelectedTask(null);
-  };
+  // Virtualized row component
+  const Row = useCallback(
+    ({ index, style }) => {
+      const sortedTasks = getSortedTasks();
+      const task = sortedTasks[index];
+
+      return (
+        <div
+          style={{
+            ...style,
+            display: "flex",
+            alignItems: "center",
+            width: "100%",
+          }}
+          className={`border-b ${
+            isDarkMode ? "border-gray-700" : "border-gray-200"
+          } table-row-hover transition-colors duration-200 cursor-pointer ${
+            index % 2 === 0
+              ? isDarkMode
+                ? "bg-gray-900"
+                : "bg-white"
+              : isDarkMode
+              ? "bg-gray-800"
+              : "bg-gray-50"
+          }`}
+          onClick={() => handleTaskClick(task.id)}
+        >
+          <div
+            style={{ width: columns[0].width }}
+            className={`px-6 py-4 text-sm font-medium truncate text-left ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}
+          >
+            {task.title}
+          </div>
+          <div
+            style={{ width: columns[1].width }}
+            className={`px-6 py-4 text-sm truncate text-left ${
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            }`}
+          >
+            {task.description.length > 50
+              ? `${task.description.substring(0, 50)}...`
+              : task.description}
+          </div>
+          <div
+            style={{ width: columns[2].width }}
+            className="px-6 py-4 flex justify-start"
+          >
+            <StatusBadge status={task.status} />
+          </div>
+          <div
+            style={{ width: columns[3].width }}
+            className={`px-6 py-4 text-sm text-left ${
+              isDarkMode ? "text-gray-300" : "text-gray-700"
+            }`}
+          >
+            {new Date(task.dueDate).toLocaleDateString()}
+          </div>
+        </div>
+      );
+    },
+    [isDarkMode, getSortedTasks, columns, handleTaskClick]
+  );
 
   return (
-    <DashboardLayout role="student" title="Your Tasks">
-      {/* Sort Options */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2">
-          <Select
-            name="sortBy"
-            value={sortBy}
-            onChange={(e) => handleSort(e.target.value)}
-            options={[
-              { value: "dueDate", label: "Sort by Due Date" },
-              { value: "status", label: "Sort by Status" },
-            ]}
-            className="w-64"
-          />
+    <DashboardLayout
+      role="student"
+      title="Your Tasks"
+      successMessage={successMessage}
+    >
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+        <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4">
+          <div className="w-full md:w-96">
+            <input
+              type="text"
+              placeholder="Search by task title, description, or status..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={getSearchInputClasses(isDarkMode)}
+            />
+          </div>
+
+          <p
+            className={`text-sm ${
+              isDarkMode ? "text-gray-400" : "text-gray-600"
+            }`}
+          >
+            <span className="mr-1">💡</span>
+            Click on a task to update its status
+          </p>
         </div>
       </div>
 
-      {/* Tasks Section */}
-      <div className="flex flex-col items-center">
-        <Card className="w-full max-w-3xl mb-6">
-          <h2 className="text-xl font-semibold mb-4">Task List</h2>
-          {sortedTasks.length === 0 ? (
-            <p className="text-center text-gray-600 dark:text-gray-400">
-              No tasks available.
-            </p>
-          ) : (
-            <ul className="space-y-4">
-              {sortedTasks.map((task) => (
-                <TaskItem
-                  key={task.id}
-                  task={task}
-                  isSelected={task.id === selectedTask?.id}
-                  onClick={() => handleTaskClick(task.id)}
-                />
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        {/* Task Details Section */}
-        {selectedTask && (
-          <Card className="w-full max-w-3xl p-4">
-            <div className="flex justify-between items-center mb-3 border-b pb-2 dark:border-gray-700">
-              <h3 className="text-lg font-semibold">Task Details</h3>
-              <button
-                onClick={handleCloseDetails}
-                className={`px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
-                  isDarkMode
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
-                    : "bg-gray-200 hover:bg-gray-300 text-gray-800"
-                }`}
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <h4 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Title
-                </h4>
-                <p className="font-medium">{selectedTask.title}</p>
-              </div>
-
-              <div>
-                <h4 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Status
-                </h4>
-                <StatusBadge status={selectedTask.status} />
-              </div>
-
-              <div>
-                <h4 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Due Date
-                </h4>
-                <p>{new Date(selectedTask.dueDate).toLocaleDateString()}</p>
-              </div>
-
-              <div className="col-span-2 mt-1">
-                <h4 className="text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  Description
-                </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {selectedTask.description ||
-                    "No description available for this task."}
-                </p>
+      {/* Tasks Table with Virtualization */}
+      <div
+        className={`w-full overflow-x-auto rounded-lg border ${
+          isDarkMode ? "border-gray-700" : "border-gray-200"
+        }`}
+      >
+        {/* Table Header */}
+        <div
+          className={`flex ${
+            isDarkMode
+              ? "bg-gray-800 text-gray-300"
+              : "bg-gray-100 text-gray-700"
+          }`}
+        >
+          {columns.map((header) => (
+            <div
+              key={header.display}
+              style={{ width: header.width }}
+              className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                header.key ? "cursor-pointer" : ""
+              } transition-colors duration-150 tooltip ${
+                isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-200"
+              }`}
+              onClick={() => header.key && sortTasks(header.key)}
+              data-tooltip={header.key ? `Sort by ${header.display}` : ""}
+            >
+              <div className="flex items-center gap-1">
+                {header.display}
+                {header.key && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className={`h-4 w-4 ${
+                      sortConfig.key === header.key
+                        ? "opacity-100"
+                        : "opacity-50"
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d={
+                        sortConfig.key === header.key &&
+                        sortConfig.direction === "desc"
+                          ? "M7 16V4m0 0L3 8m4-4l4 4"
+                          : sortConfig.key === header.key &&
+                            sortConfig.direction === "asc"
+                          ? "M7 4v12m0 0l4-4m-4 4l-4-4"
+                          : "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+                      }
+                    />
+                  </svg>
+                )}
               </div>
             </div>
-          </Card>
-        )}
+          ))}
+        </div>
+
+        {/* Virtualized Table Body */}
+        <div style={{ height: "calc(100vh - 280px)" }}>
+          {(() => {
+            const sortedTasks = getSortedTasks();
+
+            if (sortedTasks.length === 0) {
+              return (
+                <div
+                  className={`px-6 py-8 text-center text-sm ${
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}
+                >
+                  {searchQuery.trim()
+                    ? `No tasks found matching "${searchQuery}"`
+                    : "No tasks available."}
+                </div>
+              );
+            }
+
+            return (
+              <AutoSizer>
+                {({ height, width }) => (
+                  <List
+                    ref={listRef}
+                    height={height}
+                    width={width}
+                    itemCount={sortedTasks.length}
+                    itemSize={64} // Height of each row
+                    overscanCount={5} // Number of items to render outside of the visible area
+                  >
+                    {Row}
+                  </List>
+                )}
+              </AutoSizer>
+            );
+          })()}
+        </div>
       </div>
+
+      {/* Status Update Modal */}
+      <StatusUpdateModal
+        isOpen={isStatusModalOpen}
+        onClose={() => setIsStatusModalOpen(false)}
+        task={selectedTask}
+        onUpdateStatus={handleUpdateStatus}
+      />
     </DashboardLayout>
-  );
-};
-
-/**
- * TaskItem component for displaying a task in the list
- */
-const TaskItem = ({ task, isSelected, onClick }) => {
-  return (
-    <li
-      onClick={onClick}
-      className={`p-4 rounded-lg cursor-pointer shadow transition-transform hover:scale-105 border dark:border-gray-700 ${
-        isSelected ? "border-blue-500 dark:border-blue-400 border-2" : ""
-      }`}
-    >
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">{task.title}</h3>
-        <StatusBadge status={task.status} />
-      </div>
-      <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-        <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
-      </div>
-    </li>
   );
 };
 

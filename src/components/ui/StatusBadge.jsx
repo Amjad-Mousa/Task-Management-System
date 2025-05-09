@@ -12,24 +12,24 @@ const StatusBadge = ({ status, className = "", size = "md" }) => {
   // Normalize status to handle different formats
   const normalizedStatus = status.toLowerCase().replace(/\s+/g, "");
 
-  // Status color mapping with better contrast for light mode
+  // Status color mapping with better contrast and semi-transparent backgrounds for both modes
   const statusColors = {
     // Light mode : Dark mode
     notstarted: isDarkMode
       ? "bg-red-900/30 text-red-300 border-red-800"
-      : "bg-red-600 text-white border-red-700",
+      : "bg-red-100 text-red-700 border-red-200",
 
     inprogress: isDarkMode
       ? "bg-yellow-900/30 text-yellow-300 border-yellow-800"
-      : "bg-yellow-500 text-white border-yellow-600",
+      : "bg-yellow-100 text-yellow-700 border-yellow-200",
 
     pending: isDarkMode
       ? "bg-gray-700/30 text-gray-300 border-gray-600"
-      : "bg-gray-500 text-white border-gray-600",
+      : "bg-gray-100 text-gray-700 border-gray-200",
 
     completed: isDarkMode
       ? "bg-green-900/30 text-green-300 border-green-800"
-      : "bg-green-600 text-white border-green-700",
+      : "bg-green-100 text-green-700 border-green-200",
   };
 
   // Size classes
@@ -43,8 +43,8 @@ const StatusBadge = ({ status, className = "", size = "md" }) => {
   const colorClasses =
     statusColors[normalizedStatus] ||
     (isDarkMode
-      ? "bg-gray-700 text-gray-300 border-gray-600"
-      : "bg-gray-500 text-white border-gray-600");
+      ? "bg-gray-700/30 text-gray-300 border-gray-600"
+      : "bg-gray-100 text-gray-700 border-gray-200");
 
   // Format status for display
   const formatStatus = (status) => {
