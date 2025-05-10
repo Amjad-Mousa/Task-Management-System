@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useLocalStorage from "./useLocalStorage";
+import { executeGraphQL } from "../utils/graphqlClient";
 import {
-  executeGraphQL,
   LOGIN_MUTATION,
   LOGOUT_MUTATION,
   CREATE_USER_MUTATION,
   CURRENT_USER_QUERY,
-} from "../utils/graphqlClient";
+} from "../graphql/queries";
 
 /**
  * Custom hook for authentication functionality
