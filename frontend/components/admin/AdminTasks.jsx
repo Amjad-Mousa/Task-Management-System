@@ -10,10 +10,19 @@ import {
   getSearchInputClasses,
   SUCCESS_MESSAGE_TIMEOUT,
 } from "../../utils/adminUtils";
+import {
+  GET_TASKS_QUERY,
+  CREATE_TASK_MUTATION,
+  UPDATE_TASK_MUTATION,
+  DELETE_TASK_MUTATION,
+} from "../../graphql/queries";
+import { executeGraphQL } from "../../utils/graphqlClient";
 
 const AdminTasks = () => {
   const { isDarkMode } = useContext(DarkModeContext);
   const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [sortConfig, setSortConfig] = useState({
     key: "project",
     direction: "asc",
@@ -30,8 +39,8 @@ const AdminTasks = () => {
   // Column definitions for the table
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const columns = [
-    { display: "Project", key: "project", width: "15%", align: "left" },
-    { display: "Task", key: "taskName", width: "15%", align: "left" },
+    { display: "Project", key: "assignedProject", width: "15%", align: "left" },
+    { display: "Task", key: "title", width: "15%", align: "left" },
     { display: "Description", key: "description", width: "25%", align: "left" },
     {
       display: "Assigned To",
@@ -48,51 +57,31 @@ const AdminTasks = () => {
     document.title = "Tasks Management | Task Manager";
   }, []);
 
+  // Fetch tasks from API
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const data = await executeGraphQL(GET_TASKS_QUERY);
+
+      // Set tasks from the GraphQL response
+      if (data && data.tasks) {
+        setTasks(data.tasks);
+      } else {
+        console.warn("No tasks found in response:", data);
+        setTasks([]);
+      }
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+      setError("Failed to load tasks. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const storedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
-    const defaultTasks = [
-      {
-        id: 1,
-        project: "Website Redesign",
-        taskName: "Design Homepage",
-        description: "Create a responsive design for the homepage.",
-        assignedStudent: "All Yaseen",
-        status: "In Progress",
-        dueDate: "2023-04-22",
-      },
-      {
-        id: 2,
-        project: "Website Redesign",
-        taskName: "Develop API",
-        description: "Set up the backend API for the project.",
-        assignedStudent: "Braz Aeesh",
-        status: "Completed",
-        dueDate: "2023-01-16",
-      },
-      {
-        id: 3,
-        project: "Mobile App Development",
-        taskName: "Create Wireframes",
-        description: "Design initial wireframes for the mobile app.",
-        assignedStudent: "Ibn Al-Jawzee",
-        status: "Not Started",
-        dueDate: "2023-05-15",
-      },
-      {
-        id: 4,
-        project: "E-commerce Platform",
-        taskName: "Database Design",
-        description: "Create database schema for the e-commerce platform.",
-        assignedStudent: "Ayman Oulom",
-        status: "Pending",
-        dueDate: "2023-03-30",
-      },
-    ];
-
-    setTasks([...defaultTasks, ...storedTasks]);
+    fetchTasks();
   }, []);
-
-  // Using the shared utility function for status colors
 
   const sortTasks = (key) => {
     let direction = "asc";
@@ -106,40 +95,69 @@ const AdminTasks = () => {
     setTasks(sortedTasks);
   };
 
-  const removeTask = () => {
-    setTasks((prevTasks) =>
-      prevTasks.filter((task) => task.id !== taskToRemove)
-    );
-    setTaskToRemove(null);
-    setSuccessMessage("Task removed successfully!");
-    setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+  const removeTask = async () => {
+    try {
+      const response = await executeGraphQL(DELETE_TASK_MUTATION, {
+        id: taskToRemove,
+      });
+
+      if (response.errors) {
+        throw new Error(response.errors[0].message);
+      }
+
+      // Update local state
+      setTasks((prevTasks) =>
+        prevTasks.filter((task) => task.id !== taskToRemove)
+      );
+
+      setTaskToRemove(null);
+      setSuccessMessage("Task removed successfully!");
+      setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+    } catch (err) {
+      console.error("Error deleting task:", err);
+      setError("Failed to delete task. Please try again.");
+      setTimeout(() => setError(null), SUCCESS_MESSAGE_TIMEOUT);
+    }
   };
 
-  const handleTaskSubmit = (taskData) => {
-    let updatedTasks;
-    let successMsg;
+  const handleTaskSubmit = async (taskData) => {
+    try {
+      let response;
+      let successMsg;
 
-    if (taskToEdit) {
-      // Update existing task
-      updatedTasks = tasks.map((task) =>
-        task.id === taskData.id ? taskData : task
-      );
-      successMsg = "Task updated successfully!";
-    } else {
-      // Add new task
-      updatedTasks = [...tasks, taskData];
-      successMsg = "Task added successfully!";
+      if (taskToEdit) {
+        // Update existing task - taskData already has the correct format from TaskFormModal
+        response = await executeGraphQL(UPDATE_TASK_MUTATION, {
+          id: taskData.id,
+          input: taskData.input,
+        });
+
+        successMsg = "Task updated successfully!";
+      } else {
+        // Add new task - taskData already has the correct format from TaskFormModal
+        response = await executeGraphQL(CREATE_TASK_MUTATION, {
+          input: taskData.input,
+        });
+
+        successMsg = "Task added successfully!";
+      }
+
+      if (response.errors) {
+        throw new Error(response.errors[0].message);
+      }
+
+      // Refresh tasks after successful operation
+      await fetchTasks();
+
+      setSuccessMessage(successMsg);
+      setIsTaskModalOpen(false);
+      setTaskToEdit(null);
+      setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+    } catch (err) {
+      console.error("Error saving task:", err);
+      setError("Failed to save task. Please try again.");
+      setTimeout(() => setError(null), SUCCESS_MESSAGE_TIMEOUT);
     }
-
-    setTasks(updatedTasks);
-
-    // Save to localStorage
-    localStorage.setItem("tasks", JSON.stringify(updatedTasks));
-
-    setSuccessMessage(successMsg);
-    setIsTaskModalOpen(false);
-    setTaskToEdit(null);
-    setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
 
   // Get filtered tasks based on search query
@@ -149,10 +167,11 @@ const AdminTasks = () => {
 
       const query = searchQuery.toLowerCase().trim();
       return (
-        (task.project && task.project.toLowerCase().includes(query)) ||
-        (task.taskName && task.taskName.toLowerCase().includes(query)) ||
-        (task.assignedStudent &&
-          task.assignedStudent.toLowerCase().includes(query))
+        (task.assignedProject?.title &&
+          task.assignedProject.title.toLowerCase().includes(query)) ||
+        (task.title && task.title.toLowerCase().includes(query)) ||
+        (task.assignedStudent?.user?.name &&
+          task.assignedStudent.user.name.toLowerCase().includes(query))
       );
     });
   }, [tasks, searchQuery]);
@@ -193,7 +212,7 @@ const AdminTasks = () => {
               columns[0].align
             } ${isDarkMode ? "text-white" : "text-gray-900"}`}
           >
-            {task.project}
+            {task.assignedProject?.title || "Unassigned"}
           </div>
           <div
             style={{ width: columns[1].width }}
@@ -201,7 +220,7 @@ const AdminTasks = () => {
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
           >
-            {task.taskName}
+            {task.title}
           </div>
           <div
             style={{ width: columns[2].width }}
@@ -217,7 +236,7 @@ const AdminTasks = () => {
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
           >
-            {task.assignedStudent}
+            {task.assignedStudent?.user?.name || "Unassigned"}
           </div>
           <div
             style={{ width: columns[4].width }}
@@ -231,7 +250,9 @@ const AdminTasks = () => {
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
           >
-            {new Date(task.dueDate).toLocaleDateString()}
+            {task.dueDate
+              ? new Date(task.dueDate).toLocaleDateString()
+              : "No date"}
           </div>
           <div
             style={{ width: columns[6].width }}
@@ -247,16 +268,16 @@ const AdminTasks = () => {
                 isDarkMode
                   ? "bg-gray-700 hover:bg-gray-600 text-red-300/80"
                   : "bg-red-100 hover:bg-red-200 text-red-700 border border-red-200"
-              } btn-hover-effect`}
-              data-tooltip="Remove this task"
+              }`}
+              data-tooltip="Delete task"
             >
-              Remove
+              🗑️
             </button>
           </div>
         </div>
       );
     },
-    [isDarkMode, getFilteredTasks, columns]
+    [columns, getFilteredTasks, isDarkMode]
   );
 
   return (
@@ -264,6 +285,7 @@ const AdminTasks = () => {
       role="admin"
       title="Tasks Overview"
       successMessage={successMessage}
+      errorMessage={error}
     >
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
         <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4">
@@ -301,135 +323,128 @@ const AdminTasks = () => {
       </div>
 
       <div
-        className={`w-full overflow-x-auto rounded-lg border ${
+        className={`rounded-lg overflow-hidden border ${
           isDarkMode ? "border-gray-700" : "border-gray-200"
         }`}
       >
         {/* Table Header */}
         <div
-          className={`flex ${
+          className={`flex items-center border-b ${
             isDarkMode
-              ? "bg-gray-800 text-gray-300"
-              : "bg-gray-100 text-gray-700"
+              ? "bg-gray-800 border-gray-700"
+              : "bg-gray-50 border-gray-200"
           }`}
         >
-          {columns.map((header) => (
+          {columns.map((column) => (
             <div
-              key={header.display}
-              style={{ width: header.width }}
-              className={`px-6 py-3 text-${
-                header.align
-              } text-xs font-medium uppercase tracking-wider ${
-                header.key ? "cursor-pointer" : ""
-              } transition-colors duration-150 tooltip ${
-                isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-200"
-              }`}
-              onClick={() => header.key && sortTasks(header.key)}
-              data-tooltip={header.key ? `Sort by ${header.display}` : ""}
+              key={column.key || "actions"}
+              style={{ width: column.width }}
+              className={`px-6 py-3 text-left text-xs font-medium ${
+                isDarkMode ? "text-gray-300" : "text-gray-500"
+              } uppercase tracking-wider cursor-pointer hover:bg-opacity-10 hover:bg-black transition-colors duration-200`}
+              onClick={() => column.key && sortTasks(column.key)}
             >
-              <div className="flex items-center gap-1">
-                {header.display}
-                {header.key && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`h-4 w-4 ${
-                      sortConfig.key === header.key
-                        ? "opacity-100"
-                        : "opacity-50"
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d={
-                        sortConfig.key === header.key &&
-                        sortConfig.direction === "desc"
-                          ? "M7 16V4m0 0L3 8m4-4l4 4"
-                          : sortConfig.key === header.key &&
-                            sortConfig.direction === "asc"
-                          ? "M7 4v12m0 0l4-4m-4 4l-4-4"
-                          : "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-                      }
-                    />
-                  </svg>
+              <div className="flex items-center">
+                {column.display}
+                {column.key && sortConfig.key === column.key && (
+                  <span className="ml-1">
+                    {sortConfig.direction === "asc" ? "↑" : "↓"}
+                  </span>
                 )}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Virtualized Table Body */}
-        <div style={{ height: "calc(100vh - 280px)" }}>
-          {(() => {
-            const filteredTasks = getFilteredTasks();
-
-            if (filteredTasks.length === 0) {
-              return (
-                <div
-                  className={`px-6 py-8 text-center text-sm ${
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  {searchQuery.trim()
-                    ? `No tasks found matching "${searchQuery}"`
-                    : "No tasks available."}
-                </div>
-              );
-            }
-
-            return (
-              <AutoSizer>
-                {({ height, width }) => (
-                  <List
-                    ref={listRef}
-                    height={height}
-                    width={width}
-                    itemCount={filteredTasks.length}
-                    itemSize={64} // Height of each row
-                    overscanCount={5} // Number of items to render outside of the visible area
-                  >
-                    {Row}
-                  </List>
-                )}
-              </AutoSizer>
-            );
-          })()}
-        </div>
-      </div>
-
-      {/* Confirm remove task modal */}
-      {taskToRemove && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50">
+        {/* Loading State */}
+        {loading && (
           <div
-            className={`p-6 rounded-lg w-full max-w-md ${
-              isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
+            className={`px-6 py-8 text-center ${
+              isDarkMode ? "text-gray-400" : "text-gray-500"
             }`}
           >
-            <h2
-              className={`text-xl font-bold mb-4 ${
-                isDarkMode ? "text-blue-400" : "text-blue-600"
+            Loading tasks...
+          </div>
+        )}
+
+        {/* Error State */}
+        {!loading && error && !successMessage && (
+          <div className={`px-6 py-8 text-center text-red-500`}>{error}</div>
+        )}
+
+        {/* Virtualized Table Body */}
+        {!loading && !error && (
+          <div style={{ height: "calc(100vh - 280px)" }}>
+            {(() => {
+              const filteredTasks = getFilteredTasks();
+
+              if (filteredTasks.length === 0) {
+                return (
+                  <div
+                    className={`px-6 py-8 text-center text-sm ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
+                  >
+                    {searchQuery.trim()
+                      ? `No tasks found matching "${searchQuery}"`
+                      : "No tasks available."}
+                  </div>
+                );
+              }
+
+              return (
+                <AutoSizer>
+                  {({ height, width }) => (
+                    <List
+                      ref={listRef}
+                      height={height}
+                      width={width}
+                      itemCount={filteredTasks.length}
+                      itemSize={64} // Height of each row
+                      overscanCount={5} // Number of items to render outside of the visible area
+                    >
+                      {Row}
+                    </List>
+                  )}
+                </AutoSizer>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+
+      {/* Confirmation Dialog */}
+      {taskToRemove && (
+        <div
+          className={`fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50`}
+        >
+          <div
+            className={`rounded-lg p-6 max-w-sm w-full ${
+              isDarkMode ? "bg-gray-800" : "bg-white"
+            }`}
+          >
+            <h3
+              className={`text-lg font-medium mb-4 ${
+                isDarkMode ? "text-white" : "text-gray-900"
               }`}
             >
               Confirm Deletion
-            </h2>
+            </h3>
             <p
               className={`mb-6 ${
                 isDarkMode ? "text-gray-300" : "text-gray-600"
               }`}
             >
-              Are you sure you want to delete this task?
+              Are you sure you want to delete this task? This action cannot be
+              undone.
             </p>
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setTaskToRemove(null)}
                 className={`px-4 py-2 rounded-lg ${
                   isDarkMode
-                    ? "bg-gray-600 hover:bg-gray-500 text-white"
-                    : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                    ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
+                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                 }`}
               >
                 Cancel

@@ -29,6 +29,11 @@ export const GET_ADMINS_QUERY = `
       id
       user_id
       permissions
+      user {
+        id
+        name
+        email
+      }
     }
   }
 `;

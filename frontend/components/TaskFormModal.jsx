@@ -1,6 +1,12 @@
 import { useState, useEffect, useContext, useCallback } from "react";
 import PropTypes from "prop-types";
 import { DarkModeContext } from "../Context/DarkModeContext";
+import { executeGraphQL } from "../utils/graphqlClient";
+import {
+  GET_PROJECTS_QUERY,
+  GET_STUDENTS_QUERY,
+  GET_ADMINS_QUERY,
+} from "../graphql/queries";
 
 /**
  * TaskFormModal component for adding or editing tasks
@@ -10,36 +16,25 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
   const { isDarkMode } = useContext(DarkModeContext);
   const [message, setMessage] = useState({ text: "", color: "red" });
   const [formData, setFormData] = useState({
-    project: "",
-    taskName: "",
+    title: "",
     description: "",
-    assignedStudent: "",
+    assignedStudentId: "",
+    assignedAdminId: "",
+    assignedProjectId: "",
     status: "Not Started",
     dueDate: "",
   });
 
-  // List of projects (would ideally come from an API or context)
-  const projects = [
-    "Website Redesign",
-    "Mobile App Development",
-    "E-commerce Platform",
-    "Database Migration",
-    "API Integration",
-  ];
-
-  // List of students (would ideally come from an API or context)
-  const students = [
-    "All Yaseen",
-    "Braz Aeesh",
-    "Ibn Al-Jawzee",
-    "Ayman Oulom",
-    "Zayd Thabit",
-  ];
+  // State for projects, students, and admins
+  const [projects, setProjects] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Format date to YYYY-MM-DD for input type="date"
   const formatDateForInput = useCallback((date) => {
     if (!date) return "";
-    
+
     const d = new Date(date);
     // Check if date is valid
     if (isNaN(d.getTime())) {
@@ -53,7 +48,7 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
       }
       return "";
     }
-    
+
     let month = "" + (d.getMonth() + 1);
     let day = "" + d.getDate();
     const year = d.getFullYear();
@@ -75,18 +70,56 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
 
     const dueDate = new Date(date);
     const today = new Date();
-    
+
     // Reset time to compare dates only
     today.setHours(0, 0, 0, 0);
     dueDate.setHours(0, 0, 0, 0);
-    
+
     // For existing tasks, allow past dates if they haven't been changed
     if (isEditMode && task && task.dueDate === formData.dueDate) {
       return true;
     }
-    
+
     return dueDate >= today;
   };
+
+  // Fetch projects, students, and admins when modal opens
+  useEffect(() => {
+    const fetchData = async () => {
+      if (isOpen) {
+        setLoading(true);
+        try {
+          // Fetch projects
+          const projectsData = await executeGraphQL(GET_PROJECTS_QUERY);
+          if (projectsData && projectsData.projects) {
+            setProjects(projectsData.projects);
+          }
+
+          // Fetch students
+          const studentsData = await executeGraphQL(GET_STUDENTS_QUERY);
+          if (studentsData && studentsData.students) {
+            setStudents(studentsData.students);
+          }
+
+          // Fetch admins
+          const adminsData = await executeGraphQL(GET_ADMINS_QUERY);
+          if (adminsData && adminsData.admins) {
+            setAdmins(adminsData.admins);
+          }
+        } catch (error) {
+          console.error("Error fetching data:", error);
+          setMessage({
+            text: "Failed to load data. Please try again.",
+            color: "red",
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+  }, [isOpen]);
 
   // Initialize form with task data when modal opens
   useEffect(() => {
@@ -94,20 +127,23 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
       if (isEditMode && task) {
         // Edit mode - fill form with task data
         setFormData({
-          project: task.project || "",
-          taskName: task.taskName || "",
+          title: task.title || "",
           description: task.description || "",
-          assignedStudent: task.assignedStudent || "",
+          assignedStudentId: task.assignedStudent?.id || "",
+          assignedAdminId: task.assignedAdmin?.id || "",
+          assignedProjectId: task.assignedProject?.id || "",
           status: task.status || "Not Started",
           dueDate: formatDateForInput(task.dueDate) || "",
         });
       } else {
         // Add mode - reset form
+        const currentAdminId = localStorage.getItem("adminId");
         setFormData({
-          project: "",
-          taskName: "",
+          title: "",
           description: "",
-          assignedStudent: "",
+          assignedStudentId: "",
+          assignedAdminId: currentAdminId || "",
+          assignedProjectId: "",
           status: "Not Started",
           dueDate: getTodayFormatted(),
         });
@@ -124,9 +160,10 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
 
     // Check required fields
     if (
-      !formData.project ||
-      !formData.taskName ||
-      !formData.assignedStudent ||
+      !formData.title ||
+      !formData.assignedStudentId ||
+      !formData.assignedAdminId ||
+      !formData.assignedProjectId ||
       !formData.status ||
       !formData.dueDate
     ) {
@@ -143,41 +180,51 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
       return;
     }
 
-    // Format the date for display (MM/DD/YYYY)
-    const formatDateForDisplay = (dateString) => {
+    // Format the date for GraphQL (ISO string)
+    const formatDateForGraphQL = (dateString) => {
       const date = new Date(dateString);
-      const month = date.getMonth() + 1;
-      const day = date.getDate();
-      const year = date.getFullYear();
-      return `${month}/${day}/${year}`;
+      return date.toISOString();
     };
 
     if (isEditMode) {
       // Update existing task
       const updatedTask = {
-        ...task,
-        ...formData,
-        dueDate: formatDateForDisplay(formData.dueDate),
-        lastUpdated: new Date().toISOString(),
+        id: task.id,
+        input: {
+          title: formData.title,
+          description: formData.description,
+          status: formData.status,
+          dueDate: formatDateForGraphQL(formData.dueDate),
+          assignedAdminId: formData.assignedAdminId,
+          assignedStudentId: formData.assignedStudentId,
+          assignedProjectId: formData.assignedProjectId,
+        },
       };
-      
+
       // Show success message
       setMessage({ text: "Task updated successfully!", color: "green" });
-      
+
       // Call the onSubmit callback
       onSubmit(updatedTask);
     } else {
       // Create new task
       const newTask = {
-        id: Date.now(),
-        ...formData,
-        dueDate: formatDateForDisplay(formData.dueDate),
-        lastUpdated: new Date().toISOString(),
+        input: {
+          title: formData.title,
+          description: formData.description,
+          status: formData.status,
+          dueDate: formatDateForGraphQL(formData.dueDate),
+          assignedAdminId: formData.assignedAdminId,
+          assignedStudentId: formData.assignedStudentId,
+          assignedProjectId: formData.assignedProjectId,
+          createdByAdminId:
+            localStorage.getItem("adminId") || formData.assignedAdminId,
+        },
       };
-      
+
       // Show success message
       setMessage({ text: "Task added successfully!", color: "green" });
-      
+
       // Call the onSubmit callback
       onSubmit(newTask);
     }
@@ -193,7 +240,7 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    
+
     // Clear error message when user changes a field
     if (message.text) {
       setMessage({ text: "", color: "red" });
@@ -244,148 +291,188 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Project Title *</label>
-            <select
-              name="project"
-              value={formData.project}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-100 border-gray-300 text-gray-800"
-              }`}
-            >
-              <option value="">Select a project</option>
-              {projects.map((project) => (
-                <option key={project} value={project}>
-                  {project}
-                </option>
-              ))}
-            </select>
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Task Name *</label>
-            <input
-              type="text"
-              name="taskName"
-              value={formData.taskName}
-              onChange={handleChange}
-              placeholder="Enter task name"
-              className={`w-full p-2 border rounded-md ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-100 border-gray-300 text-gray-800"
-              }`}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Description</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="Enter task description"
-              rows={3}
-              className={`w-full p-2 border rounded-md resize-none ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-100 border-gray-300 text-gray-800"
-              }`}
-            ></textarea>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Assigned To *</label>
-            <select
-              name="assignedStudent"
-              value={formData.assignedStudent}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-100 border-gray-300 text-gray-800"
-              }`}
-            >
-              <option value="">Select a student</option>
-              {students.map((student) => (
-                <option key={student} value={student}>
-                  {student}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Status *</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md ${
-                isDarkMode
-                  ? "bg-gray-700 border-gray-600 text-white"
-                  : "bg-gray-100 border-gray-300 text-gray-800"
-              }`}
-            >
-              <option value="Not Started">Not Started</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Pending">Pending</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Due Date *</label>
-            <input
-              type="date"
-              name="dueDate"
-              value={formData.dueDate}
-              min={!isEditMode ? getTodayFormatted() : undefined} // Only set min date for new tasks
-              onChange={handleChange}
-              className={`w-full p-2 border rounded-md ${
-                message.text.includes("due date")
-                  ? "border-red-500"
-                  : isDarkMode
-                  ? "border-gray-600"
-                  : "border-gray-300"
-              } ${
-                isDarkMode
-                  ? "bg-gray-700 text-white"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-            />
-          </div>
-
-          {message.text && message.color === "green" && (
-            <div className="mb-4 p-3 bg-green-600 text-white rounded-md">
-              {message.text}
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Project *</label>
+              <select
+                name="assignedProjectId"
+                value={formData.assignedProjectId}
+                onChange={handleChange}
+                className={`w-full p-2 border rounded-md ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-100 border-gray-300 text-gray-800"
+                }`}
+              >
+                <option value="">Select a project</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.title}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className={`flex-1 py-2 px-4 rounded-md transition-colors ${
-                isDarkMode
-                  ? "bg-gray-700 hover:bg-gray-600 text-white"
-                  : "bg-gray-200 hover:bg-gray-300 text-gray-800"
-              }`}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
-            >
-              {isEditMode ? "Update Task" : "Add Task"}
-            </button>
-          </div>
-        </form>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Task Title *</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="Enter task title"
+                className={`w-full p-2 border rounded-md ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-100 border-gray-300 text-gray-800"
+                }`}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Description</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                placeholder="Enter task description"
+                rows={3}
+                className={`w-full p-2 border rounded-md resize-none ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-100 border-gray-300 text-gray-800"
+                }`}
+              ></textarea>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">
+                Assigned Admin *
+              </label>
+              <select
+                name="assignedAdminId"
+                value={formData.assignedAdminId}
+                onChange={handleChange}
+                className={`w-full p-2 border rounded-md ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-100 border-gray-300 text-gray-800"
+                }`}
+              >
+                <option value="">Select an admin</option>
+                {admins.map((admin) => (
+                  <option key={admin.id} value={admin.id}>
+                    {admin.user ? admin.user.name : `Admin ${admin.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">
+                Assigned Student *
+              </label>
+              <select
+                name="assignedStudentId"
+                value={formData.assignedStudentId}
+                onChange={handleChange}
+                className={`w-full p-2 border rounded-md ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-100 border-gray-300 text-gray-800"
+                }`}
+              >
+                <option value="">Select a student</option>
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.user ? student.user.name : `Student ${student.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Status *</label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className={`w-full p-2 border rounded-md ${
+                  isDarkMode
+                    ? "bg-gray-700 border-gray-600 text-white"
+                    : "bg-gray-100 border-gray-300 text-gray-800"
+                }`}
+              >
+                <option value="Not Started">Not Started</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Pending">Pending</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium">Due Date *</label>
+              <input
+                type="date"
+                name="dueDate"
+                value={formData.dueDate}
+                min={!isEditMode ? getTodayFormatted() : undefined} // Only set min date for new tasks
+                onChange={handleChange}
+                className={`w-full p-2 border rounded-md ${
+                  message.text.includes("due date")
+                    ? "border-red-500"
+                    : isDarkMode
+                    ? "border-gray-600"
+                    : "border-gray-300"
+                } ${
+                  isDarkMode
+                    ? "bg-gray-700 text-white"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              />
+            </div>
+
+            {message.text && message.color === "green" && (
+              <div className="mb-4 p-3 bg-green-600 text-white rounded-md">
+                {message.text}
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+                  isDarkMode
+                    ? "bg-gray-700 hover:bg-gray-600 text-white"
+                    : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className={`flex-1 py-2 px-4 text-white font-medium rounded-md transition-colors ${
+                  loading
+                    ? "bg-blue-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {loading
+                  ? "Loading..."
+                  : isEditMode
+                  ? "Update Task"
+                  : "Add Task"}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

@@ -5,7 +5,7 @@
 /**
  * Query to get all tasks
  */
-export const GET_TASKS = `
+export const GET_TASKS_QUERY = `
   query GetTasks {
     tasks {
       id
@@ -34,7 +34,7 @@ export const GET_TASKS = `
 /**
  * Query to get a single task by ID
  */
-export const GET_TASK = `
+export const GET_TASK_QUERY = `
   query GetTask($id: ID!) {
     task(id: $id) {
       id
@@ -67,7 +67,7 @@ export const GET_TASK = `
 /**
  * Query to get tasks by project ID
  */
-export const GET_TASKS_BY_PROJECT = `
+export const GET_TASKS_BY_PROJECT_QUERY = `
   query GetTasksByProject($projectId: ID!) {
     tasksByProject(projectId: $projectId) {
       id
@@ -92,7 +92,7 @@ export const GET_TASKS_BY_PROJECT = `
 /**
  * Query to get the most recent tasks
  */
-export const GET_RECENT_TASKS = `
+export const GET_RECENT_TASKS_QUERY = `
   query GetRecentTasks($limit: Int) {
     recentTasks(limit: $limit) {
       id
@@ -112,7 +112,7 @@ export const GET_RECENT_TASKS = `
 /**
  * Mutation to create a new task
  */
-export const CREATE_TASK = `
+export const CREATE_TASK_MUTATION = `
   mutation CreateTask($input: CreateTaskInput!) {
     createTask(input: $input) {
       id
@@ -136,7 +136,7 @@ export const CREATE_TASK = `
 /**
  * Mutation to update an existing task
  */
-export const UPDATE_TASK = `
+export const UPDATE_TASK_MUTATION = `
   mutation UpdateTask($id: ID!, $input: UpdateTaskInput!) {
     updateTask(id: $id, input: $input) {
       id
@@ -160,7 +160,7 @@ export const UPDATE_TASK = `
 /**
  * Mutation to delete a task
  */
-export const DELETE_TASK = `
+export const DELETE_TASK_MUTATION = `
   mutation DeleteTask($id: ID!) {
     deleteTask(id: $id) {
       id

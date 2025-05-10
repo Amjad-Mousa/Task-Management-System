@@ -12,21 +12,22 @@ export {
 
 // Project queries and mutations
 export {
-  GET_PROJECTS,
-  GET_PROJECT,
-  CREATE_PROJECT,
-  UPDATE_PROJECT,
-  DELETE_PROJECT,
+  GET_PROJECTS_QUERY,
+  GET_PROJECT_QUERY,
+  CREATE_PROJECT_MUTATION,
+  UPDATE_PROJECT_MUTATION,
+  DELETE_PROJECT_MUTATION,
 } from "./projects";
 
 // Task queries and mutations
 export {
-  GET_TASKS,
-  GET_TASK,
-  GET_TASKS_BY_PROJECT,
-  CREATE_TASK,
-  UPDATE_TASK,
-  DELETE_TASK,
+  GET_TASKS_QUERY,
+  GET_TASK_QUERY,
+  GET_TASKS_BY_PROJECT_QUERY,
+  GET_RECENT_TASKS_QUERY,
+  CREATE_TASK_MUTATION,
+  UPDATE_TASK_MUTATION,
+  DELETE_TASK_MUTATION,
 } from "./tasks";
 
 // User queries and mutations (common to both student and admin)

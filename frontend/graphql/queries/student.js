@@ -35,6 +35,11 @@ export const GET_STUDENTS_QUERY = `
       universityId
       major
       year
+      user {
+        id
+        name
+        email
+      }
     }
   }
 `;

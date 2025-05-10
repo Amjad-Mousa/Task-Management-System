@@ -5,7 +5,7 @@
 /**
  * Query to get all projects
  */
-export const GET_PROJECTS = `
+export const GET_PROJECTS_QUERY = `
   query GetProjects {
     projects {
       id
@@ -23,7 +23,7 @@ export const GET_PROJECTS = `
 /**
  * Query to get a single project by ID
  */
-export const GET_PROJECT = `
+export const GET_PROJECT_QUERY = `
   query GetProject($id: ID!) {
     project(id: $id) {
       id
@@ -41,7 +41,7 @@ export const GET_PROJECT = `
 /**
  * Mutation to create a new project
  */
-export const CREATE_PROJECT = `
+export const CREATE_PROJECT_MUTATION = `
   mutation CreateProject($input: CreateProjectInput!) {
     createProject(input: $input) {
       id
@@ -57,7 +57,7 @@ export const CREATE_PROJECT = `
 /**
  * Mutation to update an existing project
  */
-export const UPDATE_PROJECT = `
+export const UPDATE_PROJECT_MUTATION = `
   mutation UpdateProject($id: ID!, $input: UpdateProjectInput!) {
     updateProject(id: $id, input: $input) {
       id
@@ -73,7 +73,7 @@ export const UPDATE_PROJECT = `
 /**
  * Mutation to delete a project
  */
-export const DELETE_PROJECT = `
+export const DELETE_PROJECT_MUTATION = `
   mutation DeleteProject($id: ID!) {
     deleteProject(id: $id) {
       id
