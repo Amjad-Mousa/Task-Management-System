@@ -132,10 +132,10 @@ const useAuth = () => {
     }
   };
 
-  // Sign out function
-  const signOut = async () => {
+  // Clear authentication without redirecting
+  const clearAuth = async () => {
     try {
-      // Call the logout mutation
+      // Call the logout mutation to clear server-side session
       await executeGraphQL(LOGOUT_MUTATION);
 
       // Clear local storage and state
@@ -143,18 +143,28 @@ const useAuth = () => {
       sessionStorage.removeItem("user");
       setIsAuthenticated(false);
       setIsAdmin(false);
-      navigate("/signin");
       return true;
     } catch (error) {
-      console.error("Sign out error:", error);
-      setError(error.message || "Failed to sign out. Please try again.");
+      console.error("Clear auth error:", error);
 
       // Even if the server request fails, clear local data
       removeUser();
       sessionStorage.removeItem("user");
       setIsAuthenticated(false);
       setIsAdmin(false);
+      return false;
+    }
+  };
 
+  // Sign out function
+  const signOut = async () => {
+    try {
+      await clearAuth();
+      navigate("/signin");
+      return true;
+    } catch (error) {
+      console.error("Sign out error:", error);
+      setError(error.message || "Failed to sign out. Please try again.");
       navigate("/signin");
       return false;
     }
@@ -205,6 +215,7 @@ const useAuth = () => {
     signIn,
     signOut,
     signUp,
+    clearAuth,
   };
 };
 

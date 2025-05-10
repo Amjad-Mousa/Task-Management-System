@@ -1,18 +1,17 @@
 import React, { useContext } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { DarkModeContext } from "../Context/DarkModeContext";
+import useAuth from "../hooks/useAuth";
 
 const Sidebar = ({ role = "admin" }) => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { isDarkMode } = useContext(DarkModeContext);
+  const { signOut } = useAuth();
 
   const isActive = (path) => location.pathname === path;
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    sessionStorage.removeItem("user");
-    navigate("/signin");
+  const handleLogout = async () => {
+    await signOut();
   };
 
   // Admin navigation links

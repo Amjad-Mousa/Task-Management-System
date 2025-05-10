@@ -13,12 +13,19 @@ export default function SignUp() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { signUp, error: authError } = useAuth();
+  const { signUp, clearAuth, error: authError } = useAuth();
 
-  // Set the page title
+  // Set the page title and clear any existing session
   useEffect(() => {
     document.title = "Sign Up - Task Manager";
-  }, []);
+
+    // Clear any existing authentication session
+    const clearSession = async () => {
+      await clearAuth();
+    };
+
+    clearSession();
+  }, [clearAuth]);
 
   // Update message when auth error changes
   useEffect(() => {

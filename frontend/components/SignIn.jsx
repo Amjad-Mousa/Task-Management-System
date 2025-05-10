@@ -12,12 +12,19 @@ import useAuth from "../hooks/useAuth";
 export default function SignIn() {
   const [message, setMessage] = useState({ text: "", type: "" });
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, error: authError } = useAuth();
+  const { signIn, clearAuth, error: authError } = useAuth();
 
-  // Set page title
+  // Set page title and clear any existing session
   useEffect(() => {
     document.title = "Sign In - Task Manager";
-  }, []);
+
+    // Clear any existing authentication session
+    const clearSession = async () => {
+      await clearAuth();
+    };
+
+    clearSession();
+  }, [clearAuth]);
 
   // Update message when auth error changes
   useEffect(() => {
