@@ -7,6 +7,9 @@ import {
   LOGOUT_MUTATION,
   CREATE_USER_MUTATION,
   CURRENT_USER_QUERY,
+  CREATE_STUDENT_MUTATION,
+  CREATE_ADMIN_MUTATION,
+  DELETE_USER_MUTATION,
 } from "../graphql/queries";
 
 /**
@@ -182,13 +185,68 @@ const useAuth = () => {
         role: userData.isStudent ? "student" : "admin",
       };
 
-      // Call the createUser mutation
-      const response = await executeGraphQL(CREATE_USER_MUTATION, { input });
+      // First, create the user
+      const userResponse = await executeGraphQL(CREATE_USER_MUTATION, {
+        input,
+      });
 
-      if (response.createUser) {
-        return true;
+      if (!userResponse.createUser) {
+        setError("Failed to create user account");
+        return false;
       }
-      return false;
+
+      try {
+        // Now that we have the user ID, create the role-specific record
+        if (userData.isStudent) {
+          const studentInput = {
+            user_id: userResponse.createUser.id,
+            universityId: userData.universityId,
+            major: userData.major,
+            year: userData.year,
+          };
+
+          const studentResponse = await executeGraphQL(
+            CREATE_STUDENT_MUTATION,
+            {
+              input: studentInput,
+            }
+          );
+
+          if (!studentResponse.createStudent) {
+            throw new Error("Failed to create student profile");
+          }
+        } else {
+          const adminInput = {
+            user_id: userResponse.createUser.id,
+            permissions: ["read", "write"],
+          };
+
+          const adminResponse = await executeGraphQL(CREATE_ADMIN_MUTATION, {
+            input: adminInput,
+          });
+
+          if (!adminResponse.createAdmin) {
+            throw new Error("Failed to create admin profile");
+          }
+        }
+
+        return true;
+      } catch (profileError) {
+        // If profile creation fails, delete the orphaned user
+        try {
+          await executeGraphQL(DELETE_USER_MUTATION, {
+            id: userResponse.createUser.id,
+          });
+          console.log(
+            "Cleaned up orphaned user after profile creation failure"
+          );
+        } catch (cleanupError) {
+          console.error("Failed to clean up orphaned user:", cleanupError);
+        }
+
+        setError(profileError.message || "Failed to complete signup process");
+        return false;
+      }
     } catch (error) {
       console.error("Sign up error:", error);
       setError(error.message || "Failed to sign up. Please try again.");

@@ -5,7 +5,7 @@
 /**
  * Query to get all users
  */
-export const GET_USERS = `
+export const GET_USERS_QUERY = `
   query GetUsers {
     users {
       id
@@ -21,7 +21,7 @@ export const GET_USERS = `
 /**
  * Query to get a single user by ID
  */
-export const GET_USER = `
+export const GET_USER_QUERY = `
   query GetUser($id: ID!) {
     user(id: $id) {
       id
@@ -37,7 +37,7 @@ export const GET_USER = `
 /**
  * Mutation to update an existing user
  */
-export const UPDATE_USER = `
+export const UPDATE_USER_MUTATION = `
   mutation UpdateUser($id: ID!, $input: UpdateUserInput!) {
     updateUser(id: $id, input: $input) {
       id
@@ -51,7 +51,7 @@ export const UPDATE_USER = `
 /**
  * Mutation to delete a user
  */
-export const DELETE_USER = `
+export const DELETE_USER_MUTATION = `
   mutation DeleteUser($id: ID!) {
     deleteUser(id: $id) {
       id
