@@ -42,6 +42,14 @@ export default function SignUp() {
       errors.universityId = "Please enter your University ID";
     }
 
+    if (values.isStudent && !values.major.trim()) {
+      errors.major = "Please enter your major";
+    }
+
+    if (values.isStudent && !values.year.trim()) {
+      errors.year = "Please enter your year of study";
+    }
+
     if (!values.email || !values.email.includes("@")) {
       errors.email = "Please enter a valid email address";
     }
@@ -57,6 +65,8 @@ export default function SignUp() {
       password: "",
       isStudent: false,
       universityId: "",
+      major: "",
+      year: "",
     },
     validateForm,
     onSubmit
@@ -75,6 +85,8 @@ export default function SignUp() {
         password: formData.password,
         isStudent: formData.isStudent,
         universityId: formData.isStudent ? formData.universityId : null,
+        major: formData.isStudent ? formData.major : null,
+        year: formData.isStudent ? formData.year : null,
       };
 
       // Register user
@@ -87,7 +99,7 @@ export default function SignUp() {
         // Redirect to sign in page after delay
         setTimeout(() => {
           navigate("/signin");
-        }, 1500);
+        }, 1000);
       }
     } catch (error) {
       setMessage({
@@ -148,15 +160,37 @@ export default function SignUp() {
         </div>
 
         {values.isStudent && (
-          <Input
-            type="text"
-            label="University ID"
-            name="universityId"
-            value={values.universityId}
-            onChange={handleChange}
-            error={errors.universityId}
-            required
-          />
+          <>
+            <Input
+              type="text"
+              label="University ID"
+              name="universityId"
+              value={values.universityId}
+              onChange={handleChange}
+              error={errors.universityId}
+              required
+            />
+
+            <Input
+              type="text"
+              label="Major"
+              name="major"
+              value={values.major}
+              onChange={handleChange}
+              error={errors.major}
+              required
+            />
+
+            <Input
+              type="text"
+              label="Year of Study"
+              name="year"
+              value={values.year}
+              onChange={handleChange}
+              error={errors.year}
+              required
+            />
+          </>
         )}
 
         <Button type="submit" variant="primary" fullWidth disabled={isLoading}>
