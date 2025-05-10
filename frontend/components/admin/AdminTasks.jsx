@@ -341,7 +341,9 @@ const AdminTasks = () => {
               style={{ width: column.width }}
               className={`px-6 py-3 text-left text-xs font-medium ${
                 isDarkMode ? "text-gray-300" : "text-gray-500"
-              } uppercase tracking-wider cursor-pointer hover:bg-opacity-10 hover:bg-black transition-colors duration-200`}
+              } uppercase tracking-wider cursor-pointer ${
+                isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-200"
+              } transition-colors duration-200`}
               onClick={() => column.key && sortTasks(column.key)}
             >
               <div className="flex items-center">
