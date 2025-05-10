@@ -26,7 +26,7 @@ function App() {
 
             {/* Admin Routes */}
             <Route
-              path="/home"
+              path="/admin-home"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminHome />
@@ -34,7 +34,7 @@ function App() {
               }
             />
             <Route
-              path="/projects"
+              path="/admin-projects"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminProjects />
@@ -42,7 +42,7 @@ function App() {
               }
             />
             <Route
-              path="/tasks"
+              path="/admin-tasks"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminTasks />
@@ -50,7 +50,7 @@ function App() {
               }
             />
             <Route
-              path="/chat"
+              path="/admin-chat"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminChat />
@@ -60,7 +60,7 @@ function App() {
 
             {/* Student Routes */}
             <Route
-              path="/stu-home"
+              path="/student-home"
               element={
                 <ProtectedRoute requiredRole="student">
                   <StudentHome />

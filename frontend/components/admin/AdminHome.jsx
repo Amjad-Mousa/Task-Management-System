@@ -234,7 +234,7 @@ const AdminHome = () => {
           <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
           <div className="space-y-3">
             <Link
-              to="/projects"
+              to="/admin-projects"
               className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
                 isDarkMode
                   ? "bg-gray-800 hover:bg-gray-700"
@@ -248,7 +248,7 @@ const AdminHome = () => {
               <span className="text-lg">→</span>
             </Link>
             <Link
-              to="/tasks"
+              to="/admin-tasks"
               className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
                 isDarkMode
                   ? "bg-gray-800 hover:bg-gray-700"
@@ -262,7 +262,7 @@ const AdminHome = () => {
               <span className="text-lg">→</span>
             </Link>
             <Link
-              to="/chat"
+              to="/admin-chat"
               className={`flex items-center justify-between p-3 rounded-lg transition-colors ${
                 isDarkMode
                   ? "bg-gray-800 hover:bg-gray-700"

@@ -25,7 +25,9 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
     if (!roleMatch) {
       // Redirect to respective home based on actual role
-      return <Navigate to={isAdmin ? "/home" : "/stu-home"} replace />;
+      return (
+        <Navigate to={isAdmin ? "/admin-home" : "/student-home"} replace />
+      );
     }
   }
 

@@ -119,9 +119,9 @@ const useAuth = () => {
 
       // Redirect based on user role
       if (userData.role === "student") {
-        navigate("/stu-home");
+        navigate("/student-home");
       } else {
-        navigate("/home");
+        navigate("/admin-home");
       }
 
       return true;

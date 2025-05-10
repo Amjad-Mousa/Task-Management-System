@@ -17,15 +17,15 @@ const Sidebar = ({ role = "admin" }) => {
 
   // Admin navigation links
   const adminLinks = [
-    { path: "/home", icon: "🏠", label: "Home" },
-    { path: "/projects", icon: "📂", label: "Projects" },
-    { path: "/tasks", icon: "✅", label: "Tasks" },
-    { path: "/chat", icon: "💬", label: "Chat" },
+    { path: "/admin-home", icon: "🏠", label: "Home" },
+    { path: "/admin-projects", icon: "📂", label: "Projects" },
+    { path: "/admin-tasks", icon: "✅", label: "Tasks" },
+    { path: "/admin-chat", icon: "💬", label: "Chat" },
   ];
 
   // Student navigation links
   const studentLinks = [
-    { path: "/stu-home", icon: "🏠", label: "Home" },
+    { path: "/student-home", icon: "🏠", label: "Home" },
     { path: "/student-task", icon: "✅", label: "Tasks" },
     { path: "/student-chat", icon: "💬", label: "Chat" },
   ];
