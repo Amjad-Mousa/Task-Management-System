@@ -1,60 +1,100 @@
-import User from "../../models/userModel.js";
+const User = require("../../models/userModel.js");
+const mongoose = require("mongoose");
+const argon2 = require("argon2");
+const { checkAuth } = require("../../middleware/auth.js");
 
-const getUsers = async () => {
-  try {
-    const users = await User.find();
-    return users;
-  } catch (err) {
-    throw new Error(err);
-  }
-};
+const userResolvers = {
+  // Get all users
+  users: async (_, _args, context) => {
+    // Only allow authenticated users to access all users
+    checkAuth(context);
+    return await User.find();
+  },
 
-const getUser = async ({ id }) => {
-  try {
-    const user = await User.findById(id);
+  // Get a single user by ID
+  user: async (_, { id }, context) => {
+    // Only allow authenticated users to access user details
+    checkAuth(context);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error("Invalid user ID");
+    }
+    return await User.findById(id);
+  },
+
+  // Create a new user (register)
+  createUser: async (_, { input }) => {
+    try {
+      // Check if user with this name or email already exists
+      const existingUser = await User.findOne({
+        $or: [{ name: input.name }, { email: input.email }],
+      });
+
+      if (existingUser) {
+        throw new Error("User with this name or email already exists");
+      }
+
+      // Hash the password
+      const hashedPassword = await argon2.hash(input.password);
+
+      // Create new user with hashed password
+      const user = new User({
+        ...input,
+        password: hashedPassword,
+      });
+
+      return await user.save();
+    } catch (error) {
+      throw new Error(`Error creating user: ${error.message}`);
+    }
+  },
+
+  // Update an existing user
+  updateUser: async (_, { id, input }, context) => {
+    // Check authentication
+    const decodedToken = checkAuth(context);
+
+    // Only allow users to update their own profile or admins to update any profile
+    if (decodedToken.userId !== id && decodedToken.role !== "admin") {
+      throw new Error("Not authorized to update this user");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error("Invalid user ID");
+    }
+
+    // If password is being updated, hash it
+    if (input.password) {
+      input.password = await argon2.hash(input.password);
+    }
+
+    // Update the user by ID
+    const user = await User.findByIdAndUpdate(id, input, { new: true });
+    if (!user) throw new Error("User not found");
+
     return user;
-  } catch (err) {
-    throw new Error(err);
-  }
-};
+  },
 
-const createUser = async ({ name, email, password, role }) => {
-  try {
-    const user = await User.create({ name, email, password, role });
-    return user;
-  } catch (err) {
-    throw new Error(err);
-  }
-};
+  // Delete a user by ID
+  deleteUser: async (_, { id }, context) => {
+    // Check authentication
+    const decodedToken = checkAuth(context);
 
-const updateUser = async ({ id, name, email, role }) => {
-  try {
-    const user = await User.findByIdAndUpdate(
-      id,
-      { name, email, role },
-      { new: true }
-    );
-    return user;
-  } catch (err) {
-    throw new Error(err);
-  }
-};
+    // Only allow admins to delete users
+    if (decodedToken.role !== "admin") {
+      throw new Error("Not authorized to delete users");
+    }
 
-const deleteUser = async ({ id }) => {
-  try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error("Invalid user ID");
+    }
+
+    // Delete the user by ID
     const user = await User.findByIdAndDelete(id);
+    if (!user) throw new Error("User not found");
+
     return user;
-  } catch (err) {
-    throw new Error(err);
-  }
+  },
 };
 
-const resolvers = {
-  getUsers,
-  getUser,
-  createUser,
-  updateUser,
-  deleteUser,
-};
-
-export default resolvers;
+module.exports = userResolvers;
