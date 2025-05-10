@@ -11,13 +11,21 @@ import useAuth from "../hooks/useAuth";
  */
 export default function SignUp() {
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { signUp } = useAuth();
+  const { signUp, error: authError } = useAuth();
 
   // Set the page title
   useEffect(() => {
     document.title = "Sign Up - Task Manager";
   }, []);
+
+  // Update message when auth error changes
+  useEffect(() => {
+    if (authError) {
+      setMessage({ text: authError, type: "error" });
+    }
+  }, [authError]);
 
   // Form validation function
   const validateForm = (values) => {
@@ -27,6 +35,10 @@ export default function SignUp() {
       errors.universityId = "Please enter your University ID";
     }
 
+    if (!values.email || !values.email.includes("@")) {
+      errors.email = "Please enter a valid email address";
+    }
+
     return errors;
   };
 
@@ -34,6 +46,7 @@ export default function SignUp() {
   const { values, handleChange, handleSubmit, errors } = useForm(
     {
       username: "",
+      email: "",
       password: "",
       isStudent: false,
       universityId: "",
@@ -43,27 +56,40 @@ export default function SignUp() {
   );
 
   // Form submission handler
-  function onSubmit(formData) {
+  async function onSubmit(formData) {
     setMessage({ type: "", text: "" });
+    setIsLoading(true);
 
-    // Create user object
-    const user = {
-      username: formData.username,
-      password: formData.password,
-      isStudent: formData.isStudent,
-      universityId: formData.isStudent ? formData.universityId : null,
-    };
+    try {
+      // Create user object
+      const user = {
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        isStudent: formData.isStudent,
+        universityId: formData.isStudent ? formData.universityId : null,
+      };
 
-    // Register user
-    signUp(user);
+      // Register user
+      const success = await signUp(user);
 
-    // Show success message
-    setMessage({ type: "success", text: "Sign Up Successful!" });
+      if (success) {
+        // Show success message
+        setMessage({ type: "success", text: "Sign Up Successful!" });
 
-    // Redirect to sign in page after delay
-    setTimeout(() => {
-      navigate("/signin");
-    }, 1500);
+        // Redirect to sign in page after delay
+        setTimeout(() => {
+          navigate("/signin");
+        }, 1500);
+      }
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text: error.message || "An error occurred during sign up",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -79,6 +105,16 @@ export default function SignUp() {
           name="username"
           value={values.username}
           onChange={handleChange}
+          required
+        />
+
+        <Input
+          type="email"
+          label="Email"
+          name="email"
+          value={values.email}
+          onChange={handleChange}
+          error={errors.email}
           required
         />
 
@@ -116,8 +152,8 @@ export default function SignUp() {
           />
         )}
 
-        <Button type="submit" variant="primary" fullWidth>
-          Sign Up
+        <Button type="submit" variant="primary" fullWidth disabled={isLoading}>
+          {isLoading ? "Signing Up..." : "Sign Up"}
         </Button>
       </form>
 

@@ -11,12 +11,20 @@ import useAuth from "../hooks/useAuth";
  */
 export default function SignIn() {
   const [message, setMessage] = useState({ text: "", type: "" });
-  const { signIn } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, error: authError } = useAuth();
 
   // Set page title
   useEffect(() => {
     document.title = "Sign In - Task Manager";
   }, []);
+
+  // Update message when auth error changes
+  useEffect(() => {
+    if (authError) {
+      setMessage({ text: authError, type: "error" });
+    }
+  }, [authError]);
 
   // Initialize form with useForm hook
   const { values, handleChange, handleSubmit } = useForm(
@@ -30,38 +38,23 @@ export default function SignIn() {
   );
 
   // Form submission handler
-  function onSubmit(formData) {
+  async function onSubmit(formData) {
     setMessage({ text: "", type: "" });
+    setIsLoading(true);
 
-    const fakeStudent = { username: "student", password: "student123" };
-    const fakeAdmin = { username: "admin", password: "admin123" };
+    try {
+      const success = await signIn(formData, formData.staySignedIn);
 
-    let user = null;
-
-    if (
-      formData.username === fakeStudent.username &&
-      formData.password === fakeStudent.password
-    ) {
-      user = { role: "student", username: formData.username, isStudent: true };
-      setMessage({ text: "Sign In Successful!", type: "success" });
-
-      // Sign in with the useAuth hook
-      setTimeout(() => {
-        signIn(user, formData.staySignedIn);
-      }, 1500);
-    } else if (
-      formData.username === fakeAdmin.username &&
-      formData.password === fakeAdmin.password
-    ) {
-      user = { role: "admin", username: formData.username, isStudent: false };
-      setMessage({ text: "Sign In Successful!", type: "success" });
-
-      // Sign in with the useAuth hook
-      setTimeout(() => {
-        signIn(user, formData.staySignedIn);
-      }, 1500);
-    } else {
-      setMessage({ text: "Invalid username or password.", type: "error" });
+      if (success) {
+        setMessage({ text: "Sign In Successful!", type: "success" });
+      }
+    } catch (error) {
+      setMessage({
+        text: error.message || "An error occurred during sign in",
+        type: "error",
+      });
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -103,8 +96,8 @@ export default function SignIn() {
           </label>
         </div>
 
-        <Button type="submit" variant="primary" fullWidth>
-          Sign In
+        <Button type="submit" variant="primary" fullWidth disabled={isLoading}>
+          {isLoading ? "Signing In..." : "Sign In"}
         </Button>
       </form>
 
