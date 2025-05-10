@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "./layout/AuthLayout";
 import Input from "./ui/Input";
 import Button from "./ui/Button";
@@ -12,19 +12,25 @@ import useAuth from "../hooks/useAuth";
 export default function SignIn() {
   const [message, setMessage] = useState({ text: "", type: "" });
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, clearAuth, error: authError } = useAuth();
+  const { signIn, isAuthenticated, error: authError } = useAuth();
+  const navigate = useNavigate();
 
-  // Set page title and clear any existing session
+  // Set page title and check if already authenticated
   useEffect(() => {
     document.title = "Sign In - Task Manager";
 
-    // Clear any existing authentication session
-    const clearSession = async () => {
-      await clearAuth();
-    };
-
-    clearSession();
-  }, [clearAuth]);
+    // If already authenticated, redirect to appropriate home page
+    if (isAuthenticated) {
+      const user = JSON.parse(
+        localStorage.getItem("user") || sessionStorage.getItem("user") || "{}"
+      );
+      if (user.role === "admin") {
+        navigate("/admin-home");
+      } else if (user.role === "student") {
+        navigate("/student-home");
+      }
+    }
+  }, [isAuthenticated, navigate]);
 
   // Update message when auth error changes
   useEffect(() => {
