@@ -11,12 +11,20 @@ export const GET_TASKS = `
       id
       title
       description
-      projectId
-      assignedTo
-      startDate
       dueDate
       status
-      priority
+      assignedAdmin {
+        id
+        name
+      }
+      assignedStudent {
+        id
+        user_id
+      }
+      assignedProject {
+        id
+        title
+      }
       createdAt
       updatedAt
     }
@@ -32,12 +40,24 @@ export const GET_TASK = `
       id
       title
       description
-      projectId
-      assignedTo
-      startDate
       dueDate
       status
-      priority
+      assignedAdmin {
+        id
+        name
+      }
+      assignedStudent {
+        id
+        user_id
+      }
+      assignedProject {
+        id
+        title
+      }
+      createdByAdmin {
+        id
+        name
+      }
       createdAt
       updatedAt
     }
@@ -53,13 +73,37 @@ export const GET_TASKS_BY_PROJECT = `
       id
       title
       description
-      projectId
-      assignedTo
-      startDate
       dueDate
       status
-      priority
+      assignedAdmin {
+        id
+        name
+      }
+      assignedStudent {
+        id
+        user_id
+      }
       createdAt
+      updatedAt
+    }
+  }
+`;
+
+/**
+ * Query to get the most recent tasks
+ */
+export const GET_RECENT_TASKS = `
+  query GetRecentTasks($limit: Int) {
+    recentTasks(limit: $limit) {
+      id
+      title
+      description
+      status
+      dueDate
+      assignedStudent {
+        id
+        user_id
+      }
       updatedAt
     }
   }
@@ -74,12 +118,17 @@ export const CREATE_TASK = `
       id
       title
       description
-      projectId
-      assignedTo
-      startDate
       dueDate
       status
-      priority
+      assignedAdmin {
+        id
+      }
+      assignedStudent {
+        id
+      }
+      assignedProject {
+        id
+      }
     }
   }
 `;
@@ -93,12 +142,17 @@ export const UPDATE_TASK = `
       id
       title
       description
-      projectId
-      assignedTo
-      startDate
       dueDate
       status
-      priority
+      assignedAdmin {
+        id
+      }
+      assignedStudent {
+        id
+      }
+      assignedProject {
+        id
+      }
     }
   }
 `;

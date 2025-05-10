@@ -7,23 +7,21 @@ const taskSchema = new mongoose.Schema(
     dueDate: { type: Date, required: true },
     status: {
       type: String,
-      enum: ["Pending", "In_Progress", "Completed"],
-      default: "Pending",
+      enum: ["Not Started", "In Progress", "Completed", "Pending"],
+      default: "Not Started",
     },
-    assignedUser: {
+    assignedAdmin: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",
       required: true,
     },
-    studentsWorkingOn: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Student" },
-    ],
-    projectName: {
+    assignedStudent: [{ type: mongoose.Schema.Types.ObjectId, ref: "Student" }],
+    assignedProject: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
       required: true,
     },
-    createdBy: {
+    createdByAdmin: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Admin",
       required: true,
