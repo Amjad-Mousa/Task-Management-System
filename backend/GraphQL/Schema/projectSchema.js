@@ -1,8 +1,7 @@
-import { GraphQLObjectType, GraphQLString, GraphQLID, GraphQLList, GraphQLNonNull } from 'graphql';
-import StudentType from './studentSchema.js';
-import AdminType from './adminSchema.js';
-import TaskType from './taskSchema.js';
-import { GraphQLInt } from 'graphql';
+import { GraphQLObjectType, GraphQLString, GraphQLID, GraphQLList, GraphQLNonNull, GraphQLInt } from 'graphql';
+import { AdminType } from './adminSchema.js';
+import { StudentType } from './studentSchema.js';
+import { TaskType } from './taskSchema.js';
 
 const ProjectType = new GraphQLObjectType({
   name: 'Project',
@@ -15,7 +14,7 @@ const ProjectType = new GraphQLObjectType({
     startDate: { type: GraphQLString },
     endDate: { type: GraphQLString },
     status: { type: GraphQLString },
-    progress: { type:   GraphQLInt },
+    progress: { type: GraphQLInt },
     tasks: { type: new GraphQLList(TaskType) },
     createdAt: { type: GraphQLString },
     updatedAt: { type: GraphQLString },
@@ -70,8 +69,3 @@ const projectMutationFields = {
 };
 
 export { ProjectType, projectQueryFields, projectMutationFields };
-
-
-
-
-

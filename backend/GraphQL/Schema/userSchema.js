@@ -50,3 +50,4 @@ const userMutationFields = {
 };
 
 export { UserType, userQueryFields, userMutationFields };
+

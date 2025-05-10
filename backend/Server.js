@@ -3,18 +3,20 @@ import { graphqlHTTP } from 'express-graphql';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
-
 import { GraphQLSchema, GraphQLObjectType } from 'graphql';
 
 import { userQueryFields, userMutationFields } from './GraphQL/Schema/userSchema.js';
 import { adminQueryFields, adminMutationFields } from './GraphQL/Schema/adminSchema.js';
 import { studentQueryFields, studentMutationFields } from './GraphQL/Schema/studentSchema.js';
 import { projectQueryFields, projectMutationFields } from './GraphQL/Schema/projectSchema.js';
+import { taskQueryFields, taskMutationFields } from './GraphQL/Schema/taskSchema.js';
 
 import userResolver from './GraphQL/Resolver/userResolver.js';
 import adminResolver from './GraphQL/Resolver/adminResolver.js';
 import studentResolver from './GraphQL/Resolver/studentResolver.js';
 import projectResolver from './GraphQL/Resolver/projectResolver.js';
+import taskResolver from './GraphQL/Resolver/taskResolver.js';
+
 
 dotenv.config();
 
@@ -37,6 +39,7 @@ const RootQuery = new GraphQLObjectType({
     ...adminQueryFields,
     ...studentQueryFields,
     ...projectQueryFields,
+    ...taskQueryFields,
   },
 });
 
@@ -47,6 +50,7 @@ const RootMutation = new GraphQLObjectType({
     ...adminMutationFields,
     ...studentMutationFields,
     ...projectMutationFields,
+    ...taskMutationFields,
   },
 });
 
@@ -59,7 +63,8 @@ const rootResolvers = {
   ...userResolver,
   ...adminResolver,
   ...studentResolver,
-  ...projectResolver,
+    ...projectResolver,
+    ...taskResolver,
 };
 
 app.use('/graphql', graphqlHTTP({
