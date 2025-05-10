@@ -21,7 +21,7 @@ const app = express();
 // Configure CORS to allow credentials
 app.use(
   cors({
-    origin: "http://localhost:5173", // Your frontend URL
+    origin: process.env.CLIENT_URL,
     credentials: true,
   })
 );
@@ -40,9 +40,6 @@ const RootQuery = new GraphQLObjectType({
   fields: {
     ...userQueryFields,
     ...authQueryFields,
-    // Add other query fields here as your schema grows:
-    // ...projectQueryFields,
-    // ...taskQueryFields,
   },
 });
 
@@ -52,9 +49,6 @@ const RootMutation = new GraphQLObjectType({
   fields: {
     ...userMutationFields,
     ...authMutationFields,
-    // Add other mutation fields here as your schema grows:
-    // ...projectMutationFields,
-    // ...taskMutationFields,
   },
 });
 
@@ -64,14 +58,13 @@ const schema = new GraphQLSchema({
   mutation: RootMutation,
 });
 
-// Create GraphQL handler with context
-app.use(
-  "/graphql",
-  createHandler({
+// Create GraphQL handler with context that includes response object
+app.use("/graphql", (req, res, next) => {
+  const handler = createHandler({
     schema,
-    context: (req) => {
-      // Pass the request object to resolvers for auth middleware
-      return { req };
+    context: () => {
+      // Include both request and response in context
+      return { req: { ...req, res } };
     },
     formatError: (error) => {
       console.error(error);
@@ -81,8 +74,10 @@ app.use(
         path: error.path,
       };
     },
-  })
-);
+  });
+
+  handler(req, res, next);
+});
 
 // Serve GraphiQL IDE
 const { ruruHTML } = require("ruru/server");
@@ -91,6 +86,8 @@ app.get("/", (_req, res) => {
   res.end(ruruHTML({ endpoint: "/graphql" }));
 });
 
-app.listen(4000, () => {
-  console.log("🚀 GraphQL server running at http://localhost:4000");
+app.listen(process.env.PORT, () => {
+  console.log(
+    `🚀 GraphQL server running at http://localhost:${process.env.PORT}`
+  );
 });
