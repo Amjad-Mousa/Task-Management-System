@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const projectSchema = new mongoose.Schema(
   {
     projectName: { type: String, required: true },
+    projectCategory: { type: String, required: true },
     projectDescription: { type: String, required: true },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -10,7 +11,7 @@ const projectSchema = new mongoose.Schema(
       required: true,
     },
     studentsWorkingOn: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Student" },
+      { type: mongoose.Schema.Types.ObjectId, ref: "Student", required: true },
     ],
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
