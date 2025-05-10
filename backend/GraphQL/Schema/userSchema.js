@@ -1,25 +1,52 @@
-import {buildSchema} from 'graphql';
+import { GraphQLObjectType, GraphQLString, GraphQLID, GraphQLList } from 'graphql';
 
-const userSchema = buildSchema(`
-    type User{
-    id: ID!
-    name: String!
-    email: String!
-    role: String!
-    createdAt: String
-    updatedAt: String
-    }
+const UserType = new GraphQLObjectType({
+  name: 'User',
+  fields: () => ({
+    id: { type: GraphQLID },
+    name: { type: GraphQLString },
+    email: { type: GraphQLString },
+    role: { type: GraphQLString },
+    createdAt: { type: GraphQLString },
+    updatedAt: { type: GraphQLString },
+  }),
+});
 
-    type Query{
-        getUsers: [User]
-        getUser(id: ID!): User
-    }
-        
-    type Mutation{
-    addUser(name: String!, email: String!, password: String!, role: String!): User
-    updateUser(id: ID!, name: String, email: String, password: String, role: String): User
-    deleteUser(id: ID!): String
-    }
-    `);
-    export default userSchema;
+const userQueryFields = {
+  getUsers: {
+    type: new GraphQLList(UserType),
+    args: {},
+  },
+  getUser: {
+    type: UserType,
+    args: { id: { type: GraphQLID } },
+  },
+};
 
+const userMutationFields = {
+  addUser: {
+    type: UserType,
+    args: {
+      name: { type: GraphQLString },
+      email: { type: GraphQLString },
+      password: { type: GraphQLString },
+      role: { type: GraphQLString },
+    },
+  },
+  updateUser: {
+    type: UserType,
+    args: {
+      id: { type: GraphQLID },
+      name: { type: GraphQLString },
+      email: { type: GraphQLString },
+      password: { type: GraphQLString },
+      role: { type: GraphQLString },
+    },
+  },
+  deleteUser: {
+    type: GraphQLString,
+    args: { id: { type: GraphQLID } },
+  },
+};
+
+export { UserType, userQueryFields, userMutationFields };

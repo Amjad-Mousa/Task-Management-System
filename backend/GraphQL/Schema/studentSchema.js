@@ -1,26 +1,57 @@
-import { buildSchema } from 'graphql';
+import { GraphQLObjectType, GraphQLString, GraphQLID, GraphQLList, GraphQLNonNull } from 'graphql';
 
-const studentSchema = buildSchema(`
-  type Student {
-    id: ID!
-    user_id: ID!
-    universityId: String!
-    major: String!
-    year: String!
-    createdAt: String
-    updatedAt: String
-  }
+const StudentType = new GraphQLObjectType({
+  name: 'Student',
+  fields: () => ({
+    id: { type: GraphQLID },
+    user_id: { type: GraphQLID },
+    universityId: { type: GraphQLString },
+    major: { type: GraphQLString },
+    year: { type: GraphQLString },
+    createdAt: { type: GraphQLString },
+    updatedAt: { type: GraphQLString },
+  }),
+});
 
-  type Query {
-    getStudents: [Student]
-    getStudent(id: ID!): Student
-  }
+const studentQueryFields = {
+  getStudents: {
+    type: new GraphQLList(StudentType),
+    args: {},
+  },
+  getStudent: {
+    type: StudentType,
+    args: { id: { type: GraphQLID } },
+  },
+};
 
-  type Mutation {
-    addStudent(user_id: ID!, universityId: String!): Student
-    updateStudent(id: ID!, user_id: ID, universityId: String, major: String, year: String): Student
-    deleteStudent(id: ID!): String
-  }
-`);
+const studentMutationFields = {
+  addStudent: {
+  type: StudentType,
+  args: {
+    name: { type: new GraphQLNonNull(GraphQLString) },
+    email: { type: new GraphQLNonNull(GraphQLString) },
+    password: { type: new GraphQLNonNull(GraphQLString) },
+    universityId: { type: new GraphQLNonNull(GraphQLString) },
+    major: { type: new GraphQLNonNull(GraphQLString) },
+    year: { type: new GraphQLNonNull(GraphQLString) },
+  },
+},
+  updateStudent: {
+    type: StudentType,
+    args: {
+      id: { type: new GraphQLNonNull(GraphQLID) },
+      user_id: { type: GraphQLID },
+      universityId: { type: GraphQLString },
+      major: { type: GraphQLString },
+      year: { type: GraphQLString },
+    },
+  },
+  deleteStudent: {
+    type: GraphQLString,
+    args: {
+      id: { type: new GraphQLNonNull(GraphQLID) },
+    },
+  },
+};
 
-export default studentSchema;
+export { StudentType, studentQueryFields, studentMutationFields };
