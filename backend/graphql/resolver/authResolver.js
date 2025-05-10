@@ -20,6 +20,7 @@ const authResolvers = {
       }
 
       return user;
+      // eslint-disable-next-line no-unused-vars
     } catch (error) {
       // Return null if not authenticated (don't throw error)
       return null;

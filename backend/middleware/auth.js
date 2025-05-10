@@ -16,6 +16,7 @@ const checkAuth = (context) => {
     // Parse the session data
     const sessionData = JSON.parse(userSession);
     return sessionData;
+    // eslint-disable-next-line no-unused-vars
   } catch (error) {
     throw new Error("Invalid session. Please log in again.");
   }

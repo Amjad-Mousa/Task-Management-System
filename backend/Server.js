@@ -15,6 +15,14 @@ const {
   authQueryFields,
   authMutationFields,
 } = require("./graphql/schema/authSchema");
+const {
+  studentQueryFields,
+  studentMutationFields,
+} = require("./graphql/schema/studentSchema");
+const {
+  adminQueryFields,
+  adminMutationFields,
+} = require("./graphql/schema/adminSchema");
 
 const app = express();
 
@@ -40,6 +48,8 @@ const RootQuery = new GraphQLObjectType({
   fields: {
     ...userQueryFields,
     ...authQueryFields,
+    ...studentQueryFields,
+    ...adminQueryFields,
   },
 });
 
@@ -49,6 +59,8 @@ const RootMutation = new GraphQLObjectType({
   fields: {
     ...userMutationFields,
     ...authMutationFields,
+    ...studentMutationFields,
+    ...adminMutationFields,
   },
 });
 
