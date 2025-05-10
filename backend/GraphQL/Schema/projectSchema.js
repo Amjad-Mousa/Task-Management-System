@@ -2,6 +2,7 @@ import { GraphQLObjectType, GraphQLString, GraphQLID, GraphQLList, GraphQLNonNul
 import { AdminType } from './adminSchema.js';
 import { StudentType } from './studentSchema.js';
 import { TaskType } from './taskSchema.js';
+import projectResolvers from '../Resolver/projectResolver.js';
 
 const ProjectType = new GraphQLObjectType({
   name: 'Project',
@@ -25,10 +26,12 @@ const projectQueryFields = {
   getProjects: {
     type: new GraphQLList(ProjectType),
     args: {},
+    resolve: projectResolvers.getProjects
   },
   getProject: {
     type: ProjectType,
     args: { id: { type: GraphQLID } },
+    resolve: projectResolvers.getProject
   },
 };
 
@@ -46,6 +49,7 @@ const projectMutationFields = {
       progress: { type: new GraphQLNonNull(GraphQLInt) },
       tasks: { type: new GraphQLList(GraphQLID) },
     },
+    resolve: projectResolvers.addProject
   },
   updateProject: {
     type: ProjectType,
@@ -61,10 +65,12 @@ const projectMutationFields = {
       progress: { type: GraphQLInt },
       tasks: { type: new GraphQLList(GraphQLID) },
     },
+    resolve: projectResolvers.updateProject
   },
   deleteProject: {
     type: GraphQLString,
     args: { id: { type: new GraphQLNonNull(GraphQLID) } },
+    resolve: projectResolvers.deleteProject
   },
 };
 

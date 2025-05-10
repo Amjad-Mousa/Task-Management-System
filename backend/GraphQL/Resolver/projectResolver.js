@@ -2,7 +2,6 @@ import Project from '../../models/projectModel.js';
 import Student from '../../models/studentModel.js';
 import Task from '../../models/taskModel.js';
 import Admin from '../../models/adminModel.js';
-import mongoose from 'mongoose';
 
 const projectResolvers = {
   getProjects: async () => {
@@ -26,59 +25,60 @@ const projectResolvers = {
   },
 
   addProject: async ({ Title, projectDescription, createdBy, studentsWorkingOn, startDate, endDate, status, progress, tasks }) => {
-    try {
-      const existingProject = await Project.findOne({ Title });
-      if (existingProject) {
-        throw new Error("Project with this title already exists");
-      }
-
-      // ✅ تأكد من الأدمن
-      let admin = await Admin.findById(createdBy);
-      if (!admin) {
-        admin = new Admin({ name: "Default Admin", email: "admin@example.com" });
-        await admin.save();
-      }
-
-      // ✅ تأكد من الطلاب
-      const validatedStudents = [];
-      for (const studentId of studentsWorkingOn || []) {
-        let student = await Student.findById(studentId);
-        if (!student) {
-          student = new Student({ major: "Unknown", year: "1", universityId: "N/A" });
-          await student.save();
-        }
-        validatedStudents.push(student._id);
-      }
-
-      // ✅ تأكد من المهام
-      const validatedTasks = [];
-      for (const taskId of tasks || []) {
-        let task = await Task.findById(taskId);
-        if (!task) {
-          task = new Task({ title: "New Task" });
-          await task.save();
-        }
-        validatedTasks.push(task._id);
-      }
-
-    const newProject = new Project({
-  Title,
-  projectDescription,
-  createdBy: new mongoose.Types.ObjectId(createdBy), // تحويل الـ ID إلى ObjectId
-  studentsWorkingOn: studentsWorkingOn.map(student => new mongoose.Types.ObjectId(student)), // تحويل الـ IDs الخاصة بالطلاب إلى ObjectId
-  startDate,
-  endDate,
-  status,
-  progress,
-  tasks,
-});
-
-
-      return await newProject.save();
-    } catch (err) {
-      throw new Error("Error adding project: " + err.message);
+  try {
+    // التحقق من وجود مشروع بنفس العنوان
+    const existingProject = await Project.findOne({ Title });
+    if (existingProject) {
+      throw new Error("Project with this title already exists");
     }
-  },
+
+    // البحث عن الـ Admin باستخدام الـ user_id بشكل دقيق
+    const admin = await Admin.findOne({ user_id: createdBy });
+    if (!admin) {
+      throw new Error("Admin not found");
+    }
+
+    // تحقق من الطلاب
+    const validatedStudents = [];
+    for (const studentId of studentsWorkingOn || []) {
+      const student = await Student.findById(studentId);
+      if (!student) {
+        throw new Error(`Student with ID ${studentId} not found`);
+      }
+      validatedStudents.push(student._id);
+    }
+
+    // تحقق من المهام
+    const validatedTasks = [];
+    for (const taskId of tasks || []) {
+      const task = await Task.findById(taskId);
+      if (!task) {
+        throw new Error(`Task with ID ${taskId} not found`);
+      }
+      validatedTasks.push(task._id);
+    }
+
+    // إنشاء المشروع الجديد
+    const newProject = new Project({
+      Title,
+      projectDescription,
+      createdBy: admin._id,  // الـ admin هنا
+      studentsWorkingOn: validatedStudents,
+      startDate,
+      endDate,
+      status,
+      progress,
+      tasks: validatedTasks,
+    });
+
+    // حفظ المشروع الجديد
+    return await newProject.save();
+  } catch (err) {
+    throw new Error("Error adding project: " + err.message);
+  }
+}
+
+,
 
   updateProject: async ({ id, Title, projectDescription, createdBy, studentsWorkingOn, startDate, endDate, status, progress, tasks }) => {
     try {
@@ -87,46 +87,43 @@ const projectResolvers = {
         throw new Error("Project not found");
       }
 
-      // ✅ تحقق من الأدمن
+      // تحقق من الأدمن
       let adminId = project.createdBy;
       if (createdBy) {
-        let admin = await Admin.findById(createdBy);
+        const admin = await Admin.findById(createdBy);
         if (!admin) {
-          admin = new Admin({ name: "Default Admin", email: "admin@example.com" });
-          await admin.save();
+          throw new Error("Admin not found");
         }
         adminId = admin._id;
       }
 
-      // ✅ تحقق من الطلاب
+      // تحقق من الطلاب
       let validatedStudents = project.studentsWorkingOn;
       if (studentsWorkingOn && studentsWorkingOn.length > 0) {
         validatedStudents = [];
         for (const studentId of studentsWorkingOn) {
-          let student = await Student.findById(studentId);
+          const student = await Student.findById(studentId);
           if (!student) {
-            student = new Student({ major: "Unknown", year: "1", universityId: "N/A" });
-            await student.save();
+            throw new Error(`Student with ID ${studentId} not found`);
           }
           validatedStudents.push(student._id);
         }
       }
 
-      // ✅ تحقق من المهام
+      // تحقق من المهام
       let validatedTasks = project.tasks;
       if (tasks && tasks.length > 0) {
         validatedTasks = [];
         for (const taskId of tasks) {
-          let task = await Task.findById(taskId);
+          const task = await Task.findById(taskId);
           if (!task) {
-            task = new Task({ title: "New Task" });
-            await task.save();
+            throw new Error(`Task with ID ${taskId} not found`);
           }
           validatedTasks.push(task._id);
         }
       }
 
-      // ⬇ تحديث القيم
+      // تحديث البيانات
       project.Title = Title || project.Title;
       project.projectDescription = projectDescription || project.projectDescription;
       project.createdBy = adminId;
