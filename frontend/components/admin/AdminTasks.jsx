@@ -1,5 +1,13 @@
-import { useEffect, useState, useContext, useRef, useCallback } from "react";
+import {
+  useEffect,
+  useState,
+  useContext,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { DarkModeContext } from "../../Context/DarkModeContext";
+import { useGraphQL } from "../../Context/GraphQLContext";
 import { DashboardLayout } from "../layout";
 import TaskFormModal from "../TaskFormModal";
 import { FixedSizeList as List } from "react-window";
@@ -15,16 +23,19 @@ import {
   CREATE_TASK_MUTATION,
   UPDATE_TASK_MUTATION,
   DELETE_TASK_MUTATION,
+  GET_PROJECTS_QUERY,
 } from "../../graphql/queries";
-import { executeGraphQL } from "../../utils/graphqlClient";
 
 const AdminTasks = () => {
   const { isDarkMode } = useContext(DarkModeContext);
+  const { executeQuery } = useGraphQL();
+
   const [tasks, setTasks] = useState([]);
+  const [projectsMap, setProjectsMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sortConfig, setSortConfig] = useState({
-    key: "project",
+    key: "dueDate",
     direction: "asc",
   });
   const [searchQuery, setSearchQuery] = useState("");
@@ -32,6 +43,39 @@ const AdminTasks = () => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  // Format date for display, handling various date formats including timestamps
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "Not set";
+
+    try {
+      let dateObj;
+
+      // Handle timestamp as string
+      if (typeof dateValue === "string" && /^\d+$/.test(dateValue)) {
+        dateObj = new Date(parseInt(dateValue, 10));
+      }
+      // Handle timestamp as number
+      else if (typeof dateValue === "number") {
+        dateObj = new Date(dateValue);
+      }
+      // Handle date string
+      else {
+        dateObj = new Date(dateValue);
+      }
+
+      // Check if date is valid
+      if (isNaN(dateObj.getTime())) {
+        return "Invalid date";
+      }
+
+      // Format date as locale string
+      return dateObj.toLocaleDateString();
+    } catch (err) {
+      console.error("Error formatting date:", err);
+      return "Invalid date";
+    }
+  };
 
   // Reference for the virtualized list
   const listRef = useRef(null);
@@ -57,52 +101,103 @@ const AdminTasks = () => {
     document.title = "Tasks Management | Task Manager";
   }, []);
 
-  // Fetch tasks from API
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      const data = await executeGraphQL(GET_TASKS_QUERY);
+  // Fetch tasks from API with caching
+  const fetchTasks = useCallback(
+    async (forceRefresh = false) => {
+      try {
+        setLoading(true);
+        const data = await executeQuery(
+          GET_TASKS_QUERY,
+          {},
+          true,
+          !forceRefresh // Use cache unless force refresh is requested
+        );
 
-      // Set tasks from the GraphQL response
-      if (data && data.tasks) {
-        setTasks(data.tasks);
-      } else {
-        console.warn("No tasks found in response:", data);
-        setTasks([]);
+        // Set tasks from the GraphQL response
+        if (data && data.tasks) {
+          setTasks(data.tasks);
+        } else {
+          console.warn("No tasks found in response");
+          setTasks([]);
+        }
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching tasks:", err);
+        setError("Failed to load tasks. Please try again later.");
+      } finally {
+        setLoading(false);
       }
-      setError(null);
-    } catch (err) {
-      console.error("Error fetching tasks:", err);
-      setError("Failed to load tasks. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [executeQuery]
+  );
 
+  // Fetch projects from API with caching
+  const fetchProjects = useCallback(
+    async (forceRefresh = false) => {
+      try {
+        const data = await executeQuery(
+          GET_PROJECTS_QUERY,
+          {},
+          true,
+          !forceRefresh // Use cache unless force refresh is requested
+        );
+
+        // Set projects from the GraphQL response
+        if (data && data.projects) {
+          // Create a map of project IDs to project objects for quick lookup
+          const projectMap = {};
+          data.projects.forEach((project) => {
+            projectMap[project.id] = project;
+          });
+          setProjectsMap(projectMap);
+        } else {
+          console.warn("No projects found in response");
+          setProjectsMap({});
+        }
+      } catch (err) {
+        console.error("Error fetching projects:", err);
+        // Don't set error state here to avoid overriding task errors
+      }
+    },
+    [executeQuery]
+  );
+
+  // Fetch both tasks and projects when component mounts
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    const fetchData = async () => {
+      await fetchTasks();
+      await fetchProjects();
+    };
 
-  const sortTasks = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
+    fetchData();
+  }, [fetchTasks, fetchProjects]);
 
-    // Use the shared utility function for sorting
-    const sortedTasks = sortItems(tasks, { key, direction });
-    setTasks(sortedTasks);
-  };
+  // Sort tasks based on the selected column
+  const sortTasks = useCallback(
+    (key) => {
+      let direction = "asc";
+      if (sortConfig.key === key && sortConfig.direction === "asc") {
+        direction = "desc";
+      }
+      setSortConfig({ key, direction });
+    },
+    [sortConfig]
+  );
 
+  // Note: We use getFilteredAndSortedTasks for both filtering and sorting
+
+  // Remove a task
   const removeTask = async () => {
     try {
-      const response = await executeGraphQL(DELETE_TASK_MUTATION, {
-        id: taskToRemove,
-      });
+      const response = await executeQuery(
+        DELETE_TASK_MUTATION,
+        { id: taskToRemove },
+        true,
+        false // Don't use cache for mutations
+      );
 
-      if (response.errors) {
-        throw new Error(response.errors[0].message);
+      if (!response || !response.deleteTask) {
+        throw new Error("Failed to delete task");
       }
 
       // Update local state
@@ -120,34 +215,40 @@ const AdminTasks = () => {
     }
   };
 
+  // Handle task form submission (create or update)
   const handleTaskSubmit = async (taskData) => {
     try {
       let response;
       let successMsg;
 
       if (taskToEdit) {
-        // Update existing task - taskData already has the correct format from TaskFormModal
-        response = await executeGraphQL(UPDATE_TASK_MUTATION, {
-          id: taskData.id,
-          input: taskData.input,
-        });
+        // Update existing task
+        response = await executeQuery(
+          UPDATE_TASK_MUTATION,
+          {
+            id: taskData.id,
+            input: taskData.input,
+          },
+          true,
+          false // Don't use cache for mutations
+        );
 
         successMsg = "Task updated successfully!";
       } else {
-        // Add new task - taskData already has the correct format from TaskFormModal
-        response = await executeGraphQL(CREATE_TASK_MUTATION, {
-          input: taskData.input,
-        });
+        // Add new task
+        response = await executeQuery(
+          CREATE_TASK_MUTATION,
+          { input: taskData.input },
+          true,
+          false // Don't use cache for mutations
+        );
 
         successMsg = "Task added successfully!";
       }
 
-      if (response.errors) {
-        throw new Error(response.errors[0].message);
-      }
-
-      // Refresh tasks after successful operation
-      await fetchTasks();
+      // Refresh data after successful operation - force refresh from server
+      await fetchTasks(true);
+      await fetchProjects(true);
 
       setSuccessMessage(successMsg);
       setIsTaskModalOpen(false);
@@ -160,27 +261,46 @@ const AdminTasks = () => {
     }
   };
 
-  // Get filtered tasks based on search query
-  const getFilteredTasks = useCallback(() => {
-    return tasks.filter((task) => {
+  // Get filtered and sorted tasks based on search query and sort config
+  const getFilteredAndSortedTasks = useMemo(() => {
+    // First filter tasks based on search query
+    const filteredTasks = tasks.filter((task) => {
       if (!searchQuery.trim()) return true;
 
       const query = searchQuery.toLowerCase().trim();
+
+      // Get project name from projectsMap using the assignedProject ID
+      const projectName =
+        task.assignedProject && projectsMap && projectsMap[task.assignedProject]
+          ? projectsMap[task.assignedProject].projectName
+          : "";
+
       return (
-        (task.assignedProject?.title &&
-          task.assignedProject.title.toLowerCase().includes(query)) ||
+        (projectName && projectName.toLowerCase().includes(query)) ||
         (task.title && task.title.toLowerCase().includes(query)) ||
+        (task.description && task.description.toLowerCase().includes(query)) ||
         (task.assignedStudent?.user?.name &&
-          task.assignedStudent.user.name.toLowerCase().includes(query))
+          task.assignedStudent.user.name.toLowerCase().includes(query)) ||
+        (task.assignedAdmin?.user?.name &&
+          task.assignedAdmin.user.name.toLowerCase().includes(query)) ||
+        (task.status && task.status.toLowerCase().includes(query))
       );
     });
-  }, [tasks, searchQuery]);
 
-  // Virtualized row component
+    // Then sort the filtered tasks
+    return sortItems([...filteredTasks], sortConfig);
+  }, [tasks, searchQuery, projectsMap, sortConfig]);
+
+  // Virtualized row component with improved performance
   const Row = useCallback(
     ({ index, style }) => {
-      const filteredTasks = getFilteredTasks();
-      const task = filteredTasks[index];
+      const task = getFilteredAndSortedTasks[index];
+
+      // Get project name from map
+      const projectName =
+        task.assignedProject && projectsMap[task.assignedProject]
+          ? projectsMap[task.assignedProject].projectName
+          : "Unassigned";
 
       return (
         <div
@@ -206,54 +326,69 @@ const AdminTasks = () => {
             setIsTaskModalOpen(true);
           }}
         >
+          {/* Project column */}
           <div
             style={{ width: columns[0].width }}
             className={`px-6 py-4 text-sm font-medium truncate text-${
               columns[0].align
             } ${isDarkMode ? "text-white" : "text-gray-900"}`}
+            title={projectName}
           >
-            {task.assignedProject?.title || "Unassigned"}
+            {projectName}
           </div>
+
+          {/* Task title column */}
           <div
             style={{ width: columns[1].width }}
             className={`px-6 py-4 text-sm truncate text-${columns[1].align} ${
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
+            title={task.title}
           >
             {task.title}
           </div>
+
+          {/* Description column */}
           <div
             style={{ width: columns[2].width }}
             className={`px-6 py-4 text-sm truncate text-${columns[2].align} ${
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
+            title={task.description}
           >
             {task.description}
           </div>
+
+          {/* Assigned student column */}
           <div
             style={{ width: columns[3].width }}
             className={`px-6 py-4 text-sm truncate text-${columns[3].align} ${
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
+            title={task.assignedStudent?.user?.name || "Unassigned"}
           >
             {task.assignedStudent?.user?.name || "Unassigned"}
           </div>
+
+          {/* Status column */}
           <div
             style={{ width: columns[4].width }}
             className={`px-6 py-4 flex justify-${columns[4].align}`}
           >
             <StatusBadge status={task.status} />
           </div>
+
+          {/* Due date column */}
           <div
             style={{ width: columns[5].width }}
             className={`px-6 py-4 text-sm text-${columns[5].align} ${
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
           >
-            {task.dueDate
-              ? new Date(task.dueDate).toLocaleDateString()
-              : "No date"}
+            {task.dueDate ? formatDate(task.dueDate) : "No date"}
           </div>
+
+          {/* Actions column */}
           <div
             style={{ width: columns[6].width }}
             className={`px-6 py-4 text-sm flex justify-start`}
@@ -270,6 +405,7 @@ const AdminTasks = () => {
                   : "bg-red-100 hover:bg-red-200 text-red-700 border border-red-200"
               }`}
               data-tooltip="Delete task"
+              aria-label="Delete task"
             >
               🗑️
             </button>
@@ -277,7 +413,7 @@ const AdminTasks = () => {
         </div>
       );
     },
-    [columns, getFilteredTasks, isDarkMode]
+    [columns, getFilteredAndSortedTasks, isDarkMode, formatDate, projectsMap]
   );
 
   return (
@@ -292,7 +428,7 @@ const AdminTasks = () => {
           <div className="w-full md:w-96">
             <input
               type="text"
-              placeholder="Search by task, project, or assigned student..."
+              placeholder="Search by task, project, assigned student, or admin..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={getSearchInputClasses(isDarkMode)}
@@ -378,9 +514,7 @@ const AdminTasks = () => {
         {!loading && !error && (
           <div style={{ height: "calc(100vh - 280px)" }}>
             {(() => {
-              const filteredTasks = getFilteredTasks();
-
-              if (filteredTasks.length === 0) {
+              if (getFilteredAndSortedTasks.length === 0) {
                 return (
                   <div
                     className={`px-6 py-8 text-center text-sm ${
@@ -401,7 +535,7 @@ const AdminTasks = () => {
                       ref={listRef}
                       height={height}
                       width={width}
-                      itemCount={filteredTasks.length}
+                      itemCount={getFilteredAndSortedTasks.length}
                       itemSize={64} // Height of each row
                       overscanCount={5} // Number of items to render outside of the visible area
                     >

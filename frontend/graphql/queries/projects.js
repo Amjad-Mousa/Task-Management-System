@@ -9,11 +9,28 @@ export const GET_PROJECTS_QUERY = `
   query GetProjects {
     projects {
       id
-      title
-      description
+      projectName
+      projectCategory
+      projectDescription
       startDate
       endDate
       status
+      progress
+      createdBy {
+        id
+        user {
+          id
+          name
+        }
+      }
+      studentsWorkingOn {
+        id
+        user {
+          id
+          name
+        }
+      }
+      tasks
       createdAt
       updatedAt
     }
@@ -27,11 +44,28 @@ export const GET_PROJECT_QUERY = `
   query GetProject($id: ID!) {
     project(id: $id) {
       id
-      title
-      description
+      projectName
+      projectCategory
+      projectDescription
       startDate
       endDate
       status
+      progress
+      createdBy {
+        id
+        user {
+          id
+          name
+        }
+      }
+      studentsWorkingOn {
+        id
+        user {
+          id
+          name
+        }
+      }
+      tasks
       createdAt
       updatedAt
     }
@@ -45,11 +79,16 @@ export const CREATE_PROJECT_MUTATION = `
   mutation CreateProject($input: CreateProjectInput!) {
     createProject(input: $input) {
       id
-      title
-      description
+      projectName
+      projectCategory
+      projectDescription
       startDate
       endDate
       status
+      progress
+      studentsWorkingOn {
+        id
+      }
     }
   }
 `;
@@ -61,11 +100,16 @@ export const UPDATE_PROJECT_MUTATION = `
   mutation UpdateProject($id: ID!, $input: UpdateProjectInput!) {
     updateProject(id: $id, input: $input) {
       id
-      title
-      description
+      projectName
+      projectCategory
+      projectDescription
       startDate
       endDate
       status
+      progress
+      studentsWorkingOn {
+        id
+      }
     }
   }
 `;

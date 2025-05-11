@@ -132,7 +132,7 @@ const getAllTasks = async () => {
 };
 const getTasksByProject = async (_, { projectId }) => {
   try {
-    const tasks = await Task.find({ assignedProjectId: projectId });
+    const tasks = await Task.find({ assignedProject: projectId });
     return tasks;
   } catch (error) {
     throw new Error(`Error fetching tasks: ${error.message}`);
@@ -295,6 +295,50 @@ const deleteTask = async (_, { id }, context) => {
   }
 };
 
+// Resolver for getting the assigned admin for a task
+const getTaskAssignedAdmin = async (parent) => {
+  try {
+    if (!parent.assignedAdmin) return null;
+    return await Admin.findById(parent.assignedAdmin);
+  } catch (error) {
+    console.error("Error fetching task assigned admin:", error);
+    return null;
+  }
+};
+
+// Resolver for getting the assigned student for a task
+const getTaskAssignedStudent = async (parent) => {
+  try {
+    if (!parent.assignedStudent) return null;
+    return await Student.findById(parent.assignedStudent);
+  } catch (error) {
+    console.error("Error fetching task assigned student:", error);
+    return null;
+  }
+};
+
+// Resolver for getting the assigned project for a task
+const getTaskAssignedProject = async (parent) => {
+  try {
+    if (!parent.assignedProject) return null;
+    return parent.assignedProject; // Return just the ID since we're using GraphQLID type
+  } catch (error) {
+    console.error("Error fetching task assigned project:", error);
+    return null;
+  }
+};
+
+// Resolver for getting the admin who created the task
+const getTaskCreatedByAdmin = async (parent) => {
+  try {
+    if (!parent.createdByAdmin) return null;
+    return await Admin.findById(parent.createdByAdmin);
+  } catch (error) {
+    console.error("Error fetching task created by admin:", error);
+    return null;
+  }
+};
+
 module.exports = {
   getRecentTasks,
   getTaskById,
@@ -303,4 +347,8 @@ module.exports = {
   createTask,
   updateTask,
   deleteTask,
+  getTaskAssignedAdmin,
+  getTaskAssignedStudent,
+  getTaskAssignedProject,
+  getTaskCreatedByAdmin,
 };

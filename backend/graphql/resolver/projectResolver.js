@@ -9,20 +9,20 @@ const mongoose = require("mongoose");
 const validateProjectInput = (input) => {
   const errors = {};
 
-  // Name validation
-  if (!input.name) {
-    errors.name = "Project name is required";
-  } else if (input.name.trim().length < 3) {
-    errors.name = "Project name must be at least 3 characters";
-  } else if (input.name.trim().length > 100) {
-    errors.name = "Project name cannot exceed 100 characters";
+  // Project name validation
+  if (!input.projectName) {
+    errors.projectName = "Project name is required";
+  } else if (input.projectName.trim().length < 3) {
+    errors.projectName = "Project name must be at least 3 characters";
+  } else if (input.projectName.trim().length > 100) {
+    errors.projectName = "Project name cannot exceed 100 characters";
   }
 
-  // Description validation
-  if (!input.description) {
-    errors.description = "Project description is required";
-  } else if (input.description.trim().length < 10) {
-    errors.description = "Description must be at least 10 characters";
+  // Project description validation
+  if (!input.projectDescription) {
+    errors.projectDescription = "Project description is required";
+  } else if (input.projectDescription.trim().length < 10) {
+    errors.projectDescription = "Description must be at least 10 characters";
   }
 
   // Start date validation
@@ -55,7 +55,7 @@ const validateProjectInput = (input) => {
 
   // Status validation
   if (input.status) {
-    const validStatuses = ["Planning", "In Progress", "Completed", "On Hold"];
+    const validStatuses = ["Pending", "In_Progress", "Completed"];
     if (!validStatuses.includes(input.status)) {
       errors.status = "Invalid status value";
     }
@@ -110,6 +110,44 @@ const projectResolvers = {
     // Only allow authenticated users to access all projects
     checkAuth(context);
     return await Project.find();
+  },
+
+  // Get project tasks
+  getProjectTasks: async (parent) => {
+    try {
+      if (!parent.id) return [];
+      // Find tasks associated with this project
+      const tasks = await Task.find({ assignedProject: parent.id }).select(
+        "_id"
+      );
+      return tasks.map((task) => task._id);
+    } catch (error) {
+      console.error("Error fetching project tasks:", error);
+      return [];
+    }
+  },
+
+  // Get the admin who created the project
+  getProjectCreatedBy: async (parent) => {
+    try {
+      if (!parent.createdBy) return null;
+      return await Admin.findById(parent.createdBy);
+    } catch (error) {
+      console.error("Error fetching project creator:", error);
+      return null;
+    }
+  },
+
+  // Get students working on the project
+  getProjectStudentsWorkingOn: async (parent) => {
+    try {
+      if (!parent.studentsWorkingOn || parent.studentsWorkingOn.length === 0)
+        return [];
+      return await Student.find({ _id: { $in: parent.studentsWorkingOn } });
+    } catch (error) {
+      console.error("Error fetching students working on project:", error);
+      return [];
+    }
   },
 
   // Get a single project by ID
@@ -180,6 +218,17 @@ const projectResolvers = {
         throw new Error("Not authorized to create projects");
       }
 
+      // Find the admin record for the authenticated user
+      const admin = await Admin.findOne({ user_id: decodedToken.userId });
+      if (!admin) {
+        throw new Error("Admin record not found for authenticated user");
+      }
+
+      // Set the createdBy field to the admin's ID if not provided
+      if (!input.createdBy) {
+        input.createdBy = admin.id;
+      }
+
       // Validate input data
       const { errors: inputErrors, valid: inputValid } =
         validateProjectInput(input);
@@ -199,7 +248,7 @@ const projectResolvers = {
 
       // Set default status if not provided
       if (!input.status) {
-        input.status = "Planning";
+        input.status = "Pending";
       }
 
       // Create new project
@@ -234,9 +283,10 @@ const projectResolvers = {
 
       // Only validate fields that are being updated
       const fieldsToValidate = {};
-      if (input.name !== undefined) fieldsToValidate.name = input.name;
-      if (input.description !== undefined)
-        fieldsToValidate.description = input.description;
+      if (input.projectName !== undefined)
+        fieldsToValidate.projectName = input.projectName;
+      if (input.projectDescription !== undefined)
+        fieldsToValidate.projectDescription = input.projectDescription;
       if (input.startDate !== undefined)
         fieldsToValidate.startDate = input.startDate;
       if (input.endDate !== undefined) fieldsToValidate.endDate = input.endDate;

@@ -13,17 +13,25 @@ export const getStatusColor = (status, isDarkMode) => {
 
   switch (normalizedStatus) {
     case "completed":
-      return isDarkMode ? "bg-green-900/30 text-green-300" : "bg-green-100 text-green-700"; // Green for Completed
+      return isDarkMode
+        ? "bg-green-900/30 text-green-300"
+        : "bg-green-100 text-green-700"; // Green for Completed
     case "inprogress":
       return isDarkMode
         ? "bg-yellow-900/30 text-yellow-300"
         : "bg-yellow-100 text-yellow-700"; // Yellow for In Progress
     case "pending":
-      return isDarkMode ? "bg-gray-700/30 text-gray-300" : "bg-gray-100 text-gray-700"; // Gray for Pending
+      return isDarkMode
+        ? "bg-gray-700/30 text-gray-300"
+        : "bg-gray-100 text-gray-700"; // Gray for Pending
     case "notstarted":
-      return isDarkMode ? "bg-red-900/30 text-red-300" : "bg-red-100 text-red-700"; // Red for Not Started
+      return isDarkMode
+        ? "bg-red-900/30 text-red-300"
+        : "bg-red-100 text-red-700"; // Red for Not Started
     default:
-      return isDarkMode ? "bg-gray-700/30 text-gray-300" : "bg-gray-100 text-gray-700";
+      return isDarkMode
+        ? "bg-gray-700/30 text-gray-300"
+        : "bg-gray-100 text-gray-700";
   }
 };
 
@@ -65,7 +73,12 @@ export const sortItems = (items, sortConfig) => {
 
     // Special handling for status sorting
     if (key === "status") {
-      const statusOrder = ["Not Started", "Pending", "In Progress", "Completed"];
+      const statusOrder = [
+        "Not Started",
+        "Pending",
+        "In Progress",
+        "Completed",
+      ];
       const indexA = statusOrder.indexOf(a[key]);
       const indexB = statusOrder.indexOf(b[key]);
 
@@ -96,15 +109,19 @@ export const sortItems = (items, sortConfig) => {
  * @param {boolean} isDarkMode - Whether dark mode is enabled
  * @returns {string} The CSS class string for search inputs
  */
-export const getSearchInputClasses = (isDarkMode) => `
+export const getSearchInputClasses = (isDarkMode) =>
+  `
   w-full px-4 py-2 rounded-lg border
-  ${isDarkMode
-    ? "bg-gray-800 text-white border-gray-700 focus:border-blue-500"
-    : "bg-white text-gray-800 border-gray-300 focus:border-blue-600"
+  ${
+    isDarkMode
+      ? "bg-gray-800 text-white border-gray-700 focus:border-blue-500"
+      : "bg-white text-gray-800 border-gray-300 focus:border-blue-600"
   }
   focus:outline-none focus:ring-2 focus:ring-opacity-50
   ${isDarkMode ? "focus:ring-blue-500" : "focus:ring-blue-600"}
-`.replace(/\s+/g, " ").trim();
+`
+    .replace(/\s+/g, " ")
+    .trim();
 
 /**
  * Standard success message timeout duration

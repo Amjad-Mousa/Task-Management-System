@@ -15,16 +15,20 @@ export const GET_TASKS_QUERY = `
       status
       assignedAdmin {
         id
-        name
+        user {
+          id
+          name
+        }
       }
       assignedStudent {
         id
         user_id
+        user {
+          id
+          name
+        }
       }
-      assignedProject {
-        id
-        title
-      }
+      assignedProject
       createdAt
       updatedAt
     }
@@ -44,19 +48,26 @@ export const GET_TASK_QUERY = `
       status
       assignedAdmin {
         id
-        name
+        user {
+          id
+          name
+        }
       }
       assignedStudent {
         id
         user_id
+        user {
+          id
+          name
+        }
       }
-      assignedProject {
-        id
-        title
-      }
+      assignedProject
       createdByAdmin {
         id
-        name
+        user {
+          id
+          name
+        }
       }
       createdAt
       updatedAt
@@ -77,12 +88,20 @@ export const GET_TASKS_BY_PROJECT_QUERY = `
       status
       assignedAdmin {
         id
-        name
+        user {
+          id
+          name
+        }
       }
       assignedStudent {
         id
         user_id
+        user {
+          id
+          name
+        }
       }
+      assignedProject
       createdAt
       updatedAt
     }
@@ -104,6 +123,7 @@ export const GET_RECENT_TASKS_QUERY = `
         id
         user_id
       }
+      assignedProject
       updatedAt
     }
   }
@@ -126,9 +146,7 @@ export const CREATE_TASK_MUTATION = `
       assignedStudent {
         id
       }
-      assignedProject {
-        id
-      }
+      assignedProject
     }
   }
 `;
@@ -150,9 +168,7 @@ export const UPDATE_TASK_MUTATION = `
       assignedStudent {
         id
       }
-      assignedProject {
-        id
-      }
+      assignedProject
     }
   }
 `;

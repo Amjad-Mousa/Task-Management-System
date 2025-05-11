@@ -1,5 +1,13 @@
-import { useState, useEffect, useContext, useRef, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useContext,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { DarkModeContext } from "../../Context/DarkModeContext";
+import { useGraphQL } from "../../Context/GraphQLContext";
 import { DashboardLayout } from "../layout";
 import ProjectFormModal from "../ProjectFormModal";
 import { FixedSizeGrid as Grid } from "react-window";
@@ -11,9 +19,16 @@ import {
   getStatusFromProgress,
   SUCCESS_MESSAGE_TIMEOUT,
 } from "../../utils/adminUtils";
+import {
+  GET_PROJECTS_QUERY,
+  CREATE_PROJECT_MUTATION,
+  UPDATE_PROJECT_MUTATION,
+  DELETE_PROJECT_MUTATION,
+} from "../../graphql/queries";
 
 const AdminProjects = () => {
   const { isDarkMode } = useContext(DarkModeContext);
+  const { executeQuery, loading, error } = useGraphQL();
   const [projects, setProjects] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
@@ -22,107 +37,211 @@ const AdminProjects = () => {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState(null);
   const [sortConfig, setSortConfig] = useState({
-    key: "title",
+    key: "projectName",
     direction: "asc",
   });
 
+  // Format date for display, handling various date formats including timestamps
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "Not set";
+
+    try {
+      let dateObj;
+
+      // Handle timestamp as string
+      if (typeof dateValue === "string" && /^\d+$/.test(dateValue)) {
+        dateObj = new Date(parseInt(dateValue, 10));
+      }
+      // Handle timestamp as number
+      else if (typeof dateValue === "number") {
+        dateObj = new Date(dateValue);
+      }
+      // Handle date string
+      else {
+        dateObj = new Date(dateValue);
+      }
+
+      // Check if date is valid
+      if (isNaN(dateObj.getTime())) {
+        return "Invalid date";
+      }
+
+      // Format date as locale string
+      return dateObj.toLocaleDateString();
+    } catch (err) {
+      console.error("Error formatting date:", err);
+      return "Invalid date";
+    }
+  };
+
   // Grid configuration
-  const [columnCount, setColumnCount] = useState(3); // Default for large screens
   const gridRef = useRef(null);
 
-  useEffect(() => {
-    const savedProjects = JSON.parse(localStorage.getItem("projects")) || [];
-    const projectsWithIds = savedProjects.map((project) => ({
-      ...project,
-      id: project.id || Date.now() + Math.random(),
-    }));
-    setProjects(projectsWithIds);
-  }, []);
-
-  useEffect(() => {
-    document.title = "Projects Manager | Task Manager";
-  }, []);
-
-  // Update column count based on window width
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      if (width < 768) {
-        setColumnCount(1); // Mobile
-      } else if (width < 1024) {
-        setColumnCount(2); // Tablet
-      } else {
-        setColumnCount(3); // Desktop
+  // Fetch projects from API with caching
+  const fetchProjects = useCallback(
+    async (forceRefresh = false) => {
+      try {
+        // Pass useCache=false to force a refresh when needed
+        const data = await executeQuery(
+          GET_PROJECTS_QUERY,
+          {},
+          true,
+          !forceRefresh
+        );
+        if (data && data.projects) {
+          setProjects(data.projects);
+        }
+      } catch (err) {
+        console.error("Error fetching projects:", err);
+        setDeleteMessage("Failed to load projects. Please try again.");
+        setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
       }
-    };
+    },
+    [executeQuery, setDeleteMessage]
+  );
 
-    handleResize(); // Initial call
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  useEffect(() => {
+    fetchProjects();
+
+    // Set up a refresh interval to check for updates every 5 minutes
+    const refreshInterval = setInterval(() => {
+      fetchProjects(true); // Force refresh from server
+    }, 5 * 60 * 1000);
+
+    // Set document title
+    document.title = "Projects Manager | Task Manager";
+
+    return () => clearInterval(refreshInterval);
+  }, [fetchProjects]);
 
   // Sort projects function
-  const sortProjects = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
-  };
+  const sortProjects = useCallback(
+    (key) => {
+      let direction = "asc";
+      if (sortConfig.key === key && sortConfig.direction === "asc") {
+        direction = "desc";
+      }
+      setSortConfig({ key, direction });
+    },
+    [sortConfig]
+  );
 
-  // Filter and sort projects
-  const filteredProjects = projects
-    .filter((project) => {
-      const query = searchQuery.toLowerCase();
+  // Filter and sort projects - memoized for better performance
+  const filteredProjects = useMemo(() => {
+    // First filter projects
+    const filtered = projects.filter((project) => {
+      if (!searchQuery.trim()) return true;
+
+      const query = searchQuery.toLowerCase().trim();
       return (
-        project.title.toLowerCase().includes(query) ||
-        project.description.toLowerCase().includes(query) ||
-        (project.category && project.category.toLowerCase().includes(query)) ||
-        (project.students &&
-          project.students.some((student) =>
-            student.toLowerCase().includes(query)
+        (project.projectName &&
+          project.projectName.toLowerCase().includes(query)) ||
+        (project.projectDescription &&
+          project.projectDescription.toLowerCase().includes(query)) ||
+        (project.projectCategory &&
+          project.projectCategory.toLowerCase().includes(query)) ||
+        (project.studentsWorkingOn &&
+          project.studentsWorkingOn.some(
+            (student) =>
+              student.user &&
+              student.user.name &&
+              student.user.name.toLowerCase().includes(query)
           ))
       );
-    })
-    // Use the shared utility function for sorting
-    .sort((a, b) => (sortItems([a, b], sortConfig)[0] === a ? -1 : 1));
+    });
 
-  const confirmDeleteProject = (id) => {
-    const updatedProjects = projects.filter((project) => project.id !== id);
-    setProjects(updatedProjects);
-    localStorage.setItem("projects", JSON.stringify(updatedProjects));
-    setDeleteMessage("Project deleted successfully!");
-    setProjectToDelete(null);
-    setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+    // Then sort the filtered projects
+    return sortItems([...filtered], sortConfig);
+  }, [projects, searchQuery, sortConfig]);
+
+  const confirmDeleteProject = async (id) => {
+    try {
+      // Force no caching for mutations
+      await executeQuery(DELETE_PROJECT_MUTATION, { id }, true, false);
+
+      // Refresh projects to ensure we have the latest data
+      fetchProjects(true);
+
+      setDeleteMessage("Project deleted successfully!");
+      setProjectToDelete(null);
+      setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+    } catch (err) {
+      console.error("Error deleting project:", err);
+      setDeleteMessage("Failed to delete project. Please try again.");
+      setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+    }
   };
 
-  const handleProjectSubmit = (projectData) => {
-    let updatedProjects;
-    let successMessage;
+  const handleProjectSubmit = async (projectData) => {
+    try {
+      let response;
+      let successMessage;
 
-    if (projectToEdit) {
-      // Update existing project
-      updatedProjects = projects.map((project) =>
-        project.id === projectData.id ? projectData : project
-      );
-      successMessage = "Project updated successfully!";
-    } else {
-      // Add new project
-      updatedProjects = [...projects, projectData];
-      successMessage = "Project added successfully!";
+      if (projectToEdit) {
+        // Update existing project - force no caching for mutations
+        response = await executeQuery(
+          UPDATE_PROJECT_MUTATION,
+          {
+            id: projectData.id,
+            input: projectData.input,
+          },
+          true,
+          false
+        );
+        successMessage = "Project updated successfully!";
+      } else {
+        // Add new project - force no caching for mutations
+        response = await executeQuery(
+          CREATE_PROJECT_MUTATION,
+          {
+            input: projectData.input,
+          },
+          true,
+          false
+        );
+        successMessage = "Project added successfully!";
+      }
+
+      // Refresh projects after successful submission - force refresh from server
+      fetchProjects(true);
+
+      setDeleteMessage(successMessage);
+      setIsProjectModalOpen(false);
+      setProjectToEdit(null);
+      setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+
+      return response; // Return the response so the modal can handle it
+    } catch (err) {
+      console.error("Error submitting project:", err);
+
+      // Don't close the modal or show a general error message
+      // Instead, throw the error so the modal can handle it
+      throw err;
     }
-
-    setProjects(updatedProjects);
-    localStorage.setItem("projects", JSON.stringify(updatedProjects));
-    setDeleteMessage(successMessage);
-    setIsProjectModalOpen(false);
-    setProjectToEdit(null);
-    setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
   };
 
   // Project Card Component (for virtualization)
   const ProjectCard = useCallback(
     ({ project, style }) => {
+      // Get student names from the studentsWorkingOn array - memoized for performance
+      const studentCount = useMemo(() => {
+        return project.studentsWorkingOn
+          ? project.studentsWorkingOn.filter(
+              (student) => student.user && student.user.name
+            ).length
+          : 0;
+      }, [project.studentsWorkingOn]);
+
+      // Get status display - memoized for performance
+      const statusDisplay = useMemo(() => {
+        return getStatusFromProgress(project.progress, project.status);
+      }, [project.progress, project.status]);
+
+      // Get status color class - memoized for performance
+      const statusColorClass = useMemo(() => {
+        return getStatusColor(statusDisplay, isDarkMode);
+      }, [statusDisplay, isDarkMode]);
+
       return (
         <div style={style} className="p-2">
           <div
@@ -131,13 +250,18 @@ const AdminProjects = () => {
             }`}
           >
             {/* Card Content */}
-            <div onClick={() => setSelectedProject(project)} className="p-5">
+            <div
+              onClick={() => setSelectedProject(project)}
+              className="p-5"
+              role="button"
+              aria-label={`View details for ${project.projectName}`}
+            >
               <h3
                 className={`text-xl font-bold mb-4 ${
                   isDarkMode ? "text-blue-400" : "text-blue-600"
                 }`}
               >
-                {project.title}
+                {project.projectName}
               </h3>
 
               <div className="flex flex-col gap-3">
@@ -147,7 +271,7 @@ const AdminProjects = () => {
                   }`}
                 >
                   <span className="font-medium w-24">Category:</span>
-                  <span>{project.category}</span>
+                  <span>{project.projectCategory}</span>
                 </div>
                 <div
                   className={`flex items-center ${
@@ -155,17 +279,14 @@ const AdminProjects = () => {
                   }`}
                 >
                   <span className="font-medium w-24">Students:</span>
-                  <span>{project.students?.length || 0}</span>
+                  <span>{studentCount}</span>
                 </div>
                 <div className="mt-2">
                   <span className="font-medium mb-1 block">Progress:</span>
                   <div
-                    className={`px-3 py-2 rounded-lg text-center ${getStatusColor(
-                      getStatusFromProgress(project.progress, project.status),
-                      isDarkMode
-                    )}`}
+                    className={`px-3 py-2 rounded-lg text-center ${statusColorClass}`}
                   >
-                    {getStatusFromProgress(project.progress, project.status)}
+                    {statusDisplay}
                   </div>
                 </div>
               </div>
@@ -188,6 +309,7 @@ const AdminProjects = () => {
                     ? "bg-blue-600 hover:bg-blue-500 text-white"
                     : "bg-blue-500 hover:bg-blue-600 text-white"
                 }`}
+                aria-label={`Edit ${project.projectName}`}
               >
                 Edit
               </button>
@@ -202,6 +324,7 @@ const AdminProjects = () => {
                     ? "bg-gray-700 hover:bg-gray-600 text-red-300/80"
                     : "bg-red-100 hover:bg-red-200 text-red-700 border border-red-200"
                 }`}
+                aria-label={`Delete ${project.projectName}`}
               >
                 Delete
               </button>
@@ -210,7 +333,13 @@ const AdminProjects = () => {
         </div>
       );
     },
-    [isDarkMode]
+    [
+      isDarkMode,
+      setSelectedProject,
+      setProjectToEdit,
+      setIsProjectModalOpen,
+      setProjectToDelete,
+    ]
   );
 
   return (
@@ -218,6 +347,8 @@ const AdminProjects = () => {
       role="admin"
       title="Projects Overview"
       successMessage={deleteMessage}
+      isLoading={loading}
+      errorMessage={error}
     >
       <div className="flex flex-col md:flex-row justify-between items-center w-full mb-6">
         <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto mb-4 md:mb-0">
@@ -238,9 +369,10 @@ const AdminProjects = () => {
             value={sortConfig.key}
             onChange={(e) => sortProjects(e.target.value)}
           >
-            <option value="title">Sort by Title</option>
-            <option value="category">Sort by Category</option>
+            <option value="projectName">Sort by Title</option>
+            <option value="projectCategory">Sort by Category</option>
             <option value="progress">Sort by Progress</option>
+            <option value="status">Sort by Status</option>
           </select>
 
           <button
@@ -279,19 +411,19 @@ const AdminProjects = () => {
       >
         <div
           className="cursor-pointer flex items-center gap-1 font-medium justify-start"
-          onClick={() => sortProjects("title")}
+          onClick={() => sortProjects("projectName")}
         >
           Title
-          {sortConfig.key === "title" && (
+          {sortConfig.key === "projectName" && (
             <span>{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
           )}
         </div>
         <div
           className="cursor-pointer flex items-center gap-1 font-medium justify-center"
-          onClick={() => sortProjects("category")}
+          onClick={() => sortProjects("projectCategory")}
         >
           Category
-          {sortConfig.key === "category" && (
+          {sortConfig.key === "projectCategory" && (
             <span>{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
           )}
         </div>
@@ -312,10 +444,6 @@ const AdminProjects = () => {
             // Dynamically calculate columns based on width
             const calculatedColumnCount =
               width < 768 ? 1 : width < 1024 ? 2 : 3;
-            // Update state if needed
-            if (calculatedColumnCount !== columnCount) {
-              setColumnCount(calculatedColumnCount);
-            }
 
             // Calculate item dimensions
             const columnWidth = width / calculatedColumnCount;
@@ -336,6 +464,8 @@ const AdminProjects = () => {
                 rowHeight={rowHeight}
                 width={width}
                 itemData={filteredProjects}
+                overscanRowCount={2} // Render additional rows for smoother scrolling
+                overscanColumnCount={1} // Render additional columns for smoother scrolling
               >
                 {({ columnIndex, rowIndex, style }) => {
                   const index = rowIndex * calculatedColumnCount + columnIndex;
@@ -377,10 +507,10 @@ const AdminProjects = () => {
                     isDarkMode ? "text-blue-400" : "text-blue-600"
                   }`}
                 >
-                  {selectedProject.title}
+                  {selectedProject.projectName}
                 </h3>
                 <p className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                  {selectedProject.description}
+                  {selectedProject.projectDescription}
                 </p>
               </div>
 
@@ -388,14 +518,36 @@ const AdminProjects = () => {
                 <div>
                   <h4 className="font-semibold mb-2">Students</h4>
                   <p className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                    {selectedProject.students?.join(", ")}
+                    {selectedProject.studentsWorkingOn &&
+                    selectedProject.studentsWorkingOn.length > 0
+                      ? selectedProject.studentsWorkingOn
+                          .filter(
+                            (student) => student.user && student.user.name
+                          )
+                          .map((student) => student.user.name)
+                          .join(", ")
+                      : "No students assigned"}
                   </p>
                 </div>
 
                 <div>
                   <h4 className="font-semibold mb-2">Category</h4>
                   <p className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                    {selectedProject.category}
+                    {selectedProject.projectCategory}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">Start Date</h4>
+                  <p className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                    {formatDate(selectedProject.startDate)}
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">End Date</h4>
+                  <p className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                    {formatDate(selectedProject.endDate)}
                   </p>
                 </div>
 
@@ -418,25 +570,13 @@ const AdminProjects = () => {
                 </div>
               </div>
 
-              {selectedProject.tasks?.length > 0 && (
+              {selectedProject.tasks && selectedProject.tasks.length > 0 && (
                 <div>
                   <h4 className="text-lg font-semibold mb-3">Tasks</h4>
-                  <ul className="space-y-2">
-                    {selectedProject.tasks.map((task, index) => (
-                      <li
-                        key={index}
-                        className={`px-4 py-2 rounded-lg text-white ${
-                          task.completed
-                            ? "bg-green-600"
-                            : isDarkMode
-                            ? "bg-gray-700"
-                            : "bg-gray-500"
-                        }`}
-                      >
-                        {task.title}
-                      </li>
-                    ))}
-                  </ul>
+                  <p className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
+                    This project has {selectedProject.tasks.length} associated
+                    tasks.
+                  </p>
                 </div>
               )}
             </div>

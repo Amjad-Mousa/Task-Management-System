@@ -89,6 +89,12 @@ const studentQueryFields = {
     description: "Get all students",
     resolve: studentResolvers.students,
   },
+  // Add getAllStudents alias for frontend compatibility
+  getAllStudents: {
+    type: new GraphQLList(StudentType),
+    description: "Get all students (alias for students query)",
+    resolve: studentResolvers.students,
+  },
   student: {
     type: StudentType,
     description: "Get a student by ID",

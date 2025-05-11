@@ -9,7 +9,8 @@ const {
 } = require("graphql");
 const { AdminType } = require("./adminSchema");
 const { StudentType } = require("./studentSchema");
-const { TaskType } = require("./taskSchema");
+// Remove direct import to avoid circular dependency
+// const { TaskType } = require("./taskSchema");
 const projectResolvers = require("../resolver/projectResolver");
 
 // Project Type
@@ -56,12 +57,100 @@ const ProjectType = new GraphQLObjectType({
       description: "Progress of the project",
     },
     tasks: {
-      type: new GraphQLList(TaskType),
-      description: "Tasks related to the project",
+      // Use a thunk function to avoid circular dependency
+      type: new GraphQLList(GraphQLID),
+      description: "Task IDs related to the project",
       resolve: projectResolvers.getProjectTasks,
     },
     createdAt: { type: GraphQLString },
     updatedAt: { type: GraphQLString },
+  }),
+});
+// Input type for creating a project
+const CreateProjectInput = new GraphQLInputObjectType({
+  name: "CreateProjectInput",
+  fields: () => ({
+    projectName: {
+      type: new GraphQLNonNull(GraphQLString),
+      description: "Name of the project",
+    },
+    projectCategory: {
+      type: new GraphQLNonNull(GraphQLString),
+      description: "Category of the project",
+    },
+    projectDescription: {
+      type: new GraphQLNonNull(GraphQLString),
+      description: "Description of the project",
+    },
+    createdBy: {
+      type: GraphQLID,
+      description:
+        "ID of the admin who created the project (optional, will use authenticated admin if not provided)",
+    },
+    studentsWorkingOn: {
+      type: new GraphQLList(GraphQLID),
+      description: "IDs of students working on the project",
+    },
+    startDate: {
+      type: new GraphQLNonNull(GraphQLString),
+      description: "Start date of the project",
+    },
+    endDate: {
+      type: new GraphQLNonNull(GraphQLString),
+      description: "End date of the project",
+    },
+    status: {
+      type: new GraphQLNonNull(GraphQLString),
+      description: "Status of the project",
+    },
+    progress: {
+      type: new GraphQLNonNull(GraphQLInt),
+      description: "Progress of the project",
+    },
+  }),
+});
+
+// Input type for updating a project
+const UpdateProjectInput = new GraphQLInputObjectType({
+  name: "UpdateProjectInput",
+  fields: () => ({
+    projectName: {
+      type: GraphQLString,
+      description: "Name of the project",
+    },
+    projectCategory: {
+      type: GraphQLString,
+      description: "Category of the project",
+    },
+    projectDescription: {
+      type: GraphQLString,
+      description: "Description of the project",
+    },
+    createdBy: {
+      type: GraphQLID,
+      description: "ID of the admin who created the project",
+    },
+    studentsWorkingOn: {
+      type: new GraphQLList(GraphQLID),
+      description: "IDs of students working on the project",
+    },
+    startDate: {
+      type: GraphQLString,
+      description: "Start date of the project",
+    },
+    endDate: {
+      type: GraphQLString,
+      description: "End date of the project",
+    },
+    status: {
+      type: GraphQLString,
+      description: "Status of the project",
+    },
+    progress: {
+      type: GraphQLInt,
+      description: "Progress of the project",
+    },
+    // Note: createdAt and updatedAt are managed by the server and not included in the input type
   }),
 });
 
@@ -147,89 +236,6 @@ const projectMutationFields = {
     resolve: projectResolvers.deleteProject,
   },
 };
-
-// Input type for creating a project
-const CreateProjectInput = new GraphQLInputObjectType({
-  name: "CreateProjectInput",
-  fields: () => ({
-    projectName: {
-      type: new GraphQLNonNull(GraphQLString),
-      description: "Name of the project",
-    },
-    projectCategory: {
-      type: new GraphQLNonNull(GraphQLString),
-      description: "Category of the project",
-    },
-    projectDescription: {
-      type: new GraphQLNonNull(GraphQLString),
-      description: "Description of the project",
-    },
-    createdBy: {
-      type: new GraphQLNonNull(GraphQLID),
-      description: "ID of the admin who created the project",
-    },
-    studentsWorkingOn: {
-      type: new GraphQLList(GraphQLID),
-      description: "IDs of students working on the project",
-    },
-    startDate: {
-      type: new GraphQLNonNull(GraphQLString),
-      description: "Start date of the project",
-    },
-    endDate: {
-      type: new GraphQLNonNull(GraphQLString),
-      description: "End date of the project",
-    },
-    status: {
-      type: new GraphQLNonNull(GraphQLString),
-      description: "Status of the project",
-    },
-    progress: {
-      type: new GraphQLNonNull(GraphQLInt),
-      description: "Progress of the project",
-    },
-  }),
-});
-
-// Input type for updating a project
-const UpdateProjectInput = new GraphQLInputObjectType({
-  name: "UpdateProjectInput",
-  fields: () => ({
-    projectName: {
-      type: GraphQLString,
-      description: "Name of the project",
-    },
-    projectCategory: {
-      type: GraphQLString,
-      description: "Category of the project",
-    },
-    projectDescription: {
-      type: GraphQLString,
-      description: "Description of the project",
-    },
-    studentsWorkingOn: {
-      type: new GraphQLList(GraphQLID),
-      description: "IDs of students working on the project",
-    },
-    startDate: {
-      type: GraphQLString,
-      description: "Start date of the project",
-    },
-    endDate: {
-      type: GraphQLString,
-      description: "End date of the project",
-    },
-    status: {
-      type: GraphQLString,
-      description: "Status of the project",
-    },
-    progress: {
-      type: GraphQLInt,
-      description: "Progress of the project",
-    },
-  }),
-});
-
 module.exports = {
   ProjectType,
   projectQueryFields,

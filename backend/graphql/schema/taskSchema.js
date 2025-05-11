@@ -9,7 +9,8 @@ const {
 } = require("graphql");
 const { AdminType } = require("./adminSchema");
 const { StudentType } = require("./studentSchema");
-const { ProjectType } = require("./projectSchema");
+// Remove direct import to avoid circular dependency
+// const { ProjectType } = require("./projectSchema");
 const taskResolvers = require("../resolver/taskResolver");
 
 // Task Type
@@ -44,8 +45,9 @@ const TaskType = new GraphQLObjectType({
       resolve: taskResolvers.getTaskAssignedStudent,
     },
     assignedProject: {
-      type: ProjectType,
-      description: "Project assigned to the task",
+      // Use GraphQLID instead of ProjectType to avoid circular dependency
+      type: GraphQLID,
+      description: "Project ID assigned to the task",
       resolve: taskResolvers.getTaskAssignedProject,
     },
     createdByAdmin: {
