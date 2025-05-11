@@ -1,4 +1,10 @@
-import { useState, useEffect, useContext, useCallback, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+  useReducer,
+} from "react";
 import PropTypes from "prop-types";
 import { DarkModeContext } from "../Context/DarkModeContext";
 import { useGraphQL } from "../Context/GraphQLContext";
@@ -7,6 +13,82 @@ import {
   GET_STUDENTS_QUERY,
   GET_ADMINS_QUERY,
 } from "../graphql/queries";
+import { Modal, Button, ErrorMessage, FormField } from "./ui";
+
+/**
+ * Initial form state
+ */
+const initialFormState = {
+  formData: {
+    title: "",
+    description: "",
+    assignedStudentId: "",
+    assignedAdminId: "",
+    assignedProjectId: "",
+    status: "Not Started",
+    dueDate: "",
+  },
+  isSubmitting: false,
+  errors: {
+    general: "",
+    success: "",
+    backend: null,
+    date: { dueDate: "" },
+    fields: {},
+  },
+};
+
+/**
+ * Form state reducer
+ */
+const formReducer = (state, action) => {
+  switch (action.type) {
+    case "INIT_FORM":
+      return {
+        ...initialFormState,
+        formData: { ...initialFormState.formData, ...action.payload },
+      };
+    case "UPDATE_FIELD":
+      return {
+        ...state,
+        formData: {
+          ...state.formData,
+          [action.field]: action.value,
+        },
+        // Clear field-specific error when updating a field
+        errors: {
+          ...state.errors,
+          fields: {
+            ...state.errors.fields,
+            [action.field]: "",
+          },
+        },
+      };
+    case "SET_ERROR":
+      return {
+        ...state,
+        errors: {
+          ...state.errors,
+          [action.errorType]: action.error,
+        },
+      };
+    case "CLEAR_ERRORS":
+      return {
+        ...state,
+        errors: {
+          general: "",
+          success: "",
+          backend: null,
+          date: { dueDate: "" },
+          fields: {},
+        },
+      };
+    case "SET_SUBMITTING":
+      return { ...state, isSubmitting: action.isSubmitting };
+    default:
+      return state;
+  }
+};
 
 /**
  * TaskFormModal component for adding or editing tasks
@@ -15,19 +97,13 @@ import {
 const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
   const isEditMode = !!task;
   const { isDarkMode } = useContext(DarkModeContext);
-  const { executeQuery, loading: graphqlLoading } = useGraphQL();
-  const [message, setMessage] = useState({ text: "", color: "red" });
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    assignedStudentId: "",
-    assignedAdminId: "",
-    assignedProjectId: "",
-    status: "Not Started",
-    dueDate: "",
-  });
-  const [formErrors, setFormErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
+  const { executeQuery } = useGraphQL();
+
+  // Use reducer for form state management
+  const [formState, dispatch] = useReducer(formReducer, initialFormState);
+
+  // Destructure form state for easier access
+  const { formData, isSubmitting, errors } = formState;
 
   // State for projects, students, and admins
   const [projects, setProjects] = useState([]);
@@ -106,8 +182,16 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
   }, [formatDateForInput]);
 
   // Validate due date is today or in the future
-  const validateDueDate = (date) => {
-    if (!date) return false;
+  const validateDueDate = useCallback(() => {
+    const date = formData.dueDate;
+    if (!date) {
+      dispatch({
+        type: "SET_ERROR",
+        errorType: "date",
+        error: { dueDate: "Due date is required" },
+      });
+      return false;
+    }
 
     try {
       // Parse the date string to a Date object
@@ -120,23 +204,42 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
 
       // Check if date is valid
       if (isNaN(dueDate.getTime())) {
+        dispatch({
+          type: "SET_ERROR",
+          errorType: "date",
+          error: { dueDate: "Invalid date format" },
+        });
         return false;
       }
 
       // For existing tasks, allow past dates if they haven't been changed
       if (isEditMode && task && task.dueDate) {
         const originalFormattedDate = formatDateForInput(task.dueDate);
-        if (originalFormattedDate === formData.dueDate) {
+        if (originalFormattedDate === date) {
           return true;
         }
       }
 
-      return dueDate >= today;
+      if (dueDate < today) {
+        dispatch({
+          type: "SET_ERROR",
+          errorType: "date",
+          error: { dueDate: "Due date must be today or in the future" },
+        });
+        return false;
+      }
+
+      return true;
     } catch (err) {
       console.error("Error validating due date:", err);
+      dispatch({
+        type: "SET_ERROR",
+        errorType: "date",
+        error: { dueDate: "Error validating date" },
+      });
       return false;
     }
-  };
+  }, [formData.dueDate, isEditMode, task, formatDateForInput, dispatch]);
 
   // Fetch projects, students, and admins when modal opens
   useEffect(() => {
@@ -189,9 +292,11 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
   // Initialize form with task data when modal opens
   useEffect(() => {
     if (isOpen) {
+      let initialData = {};
+
       if (isEditMode && task) {
         // Edit mode - fill form with task data
-        setFormData({
+        initialData = {
           title: task.title || "",
           description: task.description || "",
           assignedStudentId: task.assignedStudent?.id || "",
@@ -199,23 +304,43 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
           assignedProjectId: task.assignedProject || "",
           status: task.status || "Not Started",
           dueDate: formatDateForInput(task.dueDate) || "",
-        });
+        };
       } else {
-        // Add mode - reset form
+        // Add mode - reset form with default values
         const currentAdminId = localStorage.getItem("adminId");
-        setFormData({
+
+        // Set default values for admin, project, and student
+        // Use the first available option for each if available
+        const defaultAdminId =
+          currentAdminId || (admins.length > 0 ? admins[0].id : "");
+        const defaultProjectId = projects.length > 0 ? projects[0].id : "";
+        const defaultStudentId = students.length > 0 ? students[0].id : "";
+
+        initialData = {
           title: "",
           description: "",
-          assignedStudentId: "",
-          assignedAdminId: currentAdminId || "",
-          assignedProjectId: "",
+          assignedStudentId: defaultStudentId, // Default to first student
+          assignedAdminId: defaultAdminId, // Default to current admin or first admin
+          assignedProjectId: defaultProjectId, // Default to first project
           status: "Not Started",
           dueDate: getTodayFormatted(),
-        });
+        };
       }
-      setMessage({ text: "", color: "red" });
+
+      // Initialize form with the prepared data
+      dispatch({ type: "INIT_FORM", payload: initialData });
+
+      // Clear any previous errors
+      dispatch({ type: "CLEAR_ERRORS" });
     }
-  }, [isOpen, task, isEditMode, formatDateForInput, getTodayFormatted]);
+  }, [
+    isOpen,
+    task,
+    isEditMode,
+    formatDateForInput,
+    getTodayFormatted,
+    dispatch,
+  ]);
 
   // Format the date for GraphQL (ISO string)
   const formatDateForGraphQL = useCallback((dateString) => {
@@ -234,63 +359,86 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
 
   // Validate form fields
   const validateForm = useCallback(() => {
-    const errors = {};
+    // Clear previous errors
+    dispatch({ type: "CLEAR_ERRORS" });
+
+    const fieldErrors = {};
+    let hasErrors = false;
 
     // Validate title
     if (!formData.title.trim()) {
-      errors.title = "Task title is required";
+      fieldErrors.title = "Task title is required";
+      hasErrors = true;
     } else if (formData.title.trim().length < 3) {
-      errors.title = "Task title must be at least 3 characters";
+      fieldErrors.title = "Task title must be at least 3 characters";
+      hasErrors = true;
+    }
+
+    // Validate description
+    if (!formData.description.trim()) {
+      fieldErrors.description = "Task description is required";
+      hasErrors = true;
     }
 
     // Validate project
     if (!formData.assignedProjectId) {
-      errors.assignedProjectId = "Project is required";
+      fieldErrors.assignedProjectId = "Project is required";
+      hasErrors = true;
     }
 
     // Validate admin
     if (!formData.assignedAdminId) {
-      errors.assignedAdminId = "Admin is required";
+      fieldErrors.assignedAdminId = "Admin is required";
+      hasErrors = true;
     }
 
     // Validate student
     if (!formData.assignedStudentId) {
-      errors.assignedStudentId = "Student is required";
+      fieldErrors.assignedStudentId = "Student is required";
+      hasErrors = true;
     }
 
     // Validate status
     if (!formData.status) {
-      errors.status = "Status is required";
+      fieldErrors.status = "Status is required";
+      hasErrors = true;
     }
 
-    // Validate due date
-    if (!formData.dueDate) {
-      errors.dueDate = "Due date is required";
-    } else if (!validateDueDate(formData.dueDate)) {
-      errors.dueDate = "Due date must be today or in the future";
+    // Set field errors if any
+    if (Object.keys(fieldErrors).length > 0) {
+      dispatch({
+        type: "SET_ERROR",
+        errorType: "fields",
+        error: fieldErrors,
+      });
     }
 
-    return errors;
-  }, [formData, validateDueDate]);
+    // Validate due date separately
+    const isDateValid = validateDueDate();
+
+    return !hasErrors && isDateValid;
+  }, [formData, validateDueDate, dispatch]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Reset message and set submitting state
-    setMessage({ text: "", color: "red" });
-    setSubmitting(true);
+    // Clear previous errors
+    dispatch({ type: "CLEAR_ERRORS" });
+
+    // Set submitting state
+    dispatch({ type: "SET_SUBMITTING", isSubmitting: true });
 
     // Validate form
-    const errors = validateForm();
-    setFormErrors(errors);
+    const isValid = validateForm();
 
-    // If there are errors, show message and return
-    if (Object.keys(errors).length > 0) {
-      setMessage({
-        text: "Please correct the errors in the form",
-        color: "red",
+    // If there are errors, show general error message and return
+    if (!isValid) {
+      dispatch({
+        type: "SET_ERROR",
+        errorType: "general",
+        error: "Please fill out all required fields",
       });
-      setSubmitting(false);
+      dispatch({ type: "SET_SUBMITTING", isSubmitting: false });
       return;
     }
 
@@ -311,9 +459,6 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
             assignedProjectId: formData.assignedProjectId,
           },
         };
-
-        // Show success message
-        setMessage({ text: "Task updated successfully!", color: "green" });
       } else {
         // Create new task
         taskData = {
@@ -329,312 +474,272 @@ const TaskFormModal = ({ isOpen, onClose, onSubmit, task = null }) => {
               localStorage.getItem("adminId") || formData.assignedAdminId,
           },
         };
-
-        // Show success message
-        setMessage({ text: "Task added successfully!", color: "green" });
       }
 
-      // Call the onSubmit callback
+      // Call the onSubmit callback and wait for it to complete
+      // If it throws an error, it will be caught in the catch block
       await onSubmit(taskData);
 
+      // If we get here, the submission was successful (no error was thrown)
+
+      // Only show success message and close modal if we get here (no errors thrown)
+      const successMessage = isEditMode
+        ? "Task updated successfully!"
+        : "Task added successfully!";
+
+      // Create a success message with a different class to style it as green
+      dispatch({
+        type: "SET_ERROR",
+        errorType: "success",
+        error: successMessage,
+      });
+
+      // Only close the modal after a successful submission
       // Close the modal after a short delay to show the success message
       setTimeout(() => {
         onClose();
-      }, 1000);
+      }, 500);
     } catch (error) {
       console.error("Error submitting task:", error);
-      setMessage({
-        text: error.message || "Failed to save task. Please try again.",
-        color: "red",
-      });
+
+      // Handle different types of errors
+      if (error.message && error.message.includes("Validation error")) {
+        try {
+          // Try to parse the validation error message
+          const errorStart = error.message.indexOf("{");
+          const errorEnd = error.message.lastIndexOf("}") + 1;
+          if (errorStart > 0 && errorEnd > errorStart) {
+            const errorJson = error.message.substring(errorStart, errorEnd);
+            const parsedErrors = JSON.parse(errorJson);
+            dispatch({
+              type: "SET_ERROR",
+              errorType: "backend",
+              error: parsedErrors,
+            });
+          } else {
+            dispatch({
+              type: "SET_ERROR",
+              errorType: "general",
+              error:
+                error.message ||
+                "Failed to save task. Please check your inputs.",
+            });
+          }
+        } catch {
+          dispatch({
+            type: "SET_ERROR",
+            errorType: "general",
+            error:
+              error.message || "Failed to save task. Please check your inputs.",
+          });
+        }
+      } else {
+        // Generic error message for other types of errors
+        dispatch({
+          type: "SET_ERROR",
+          errorType: "general",
+          error: error.message || "An error occurred while saving the task.",
+        });
+      }
     } finally {
-      setSubmitting(false);
+      dispatch({ type: "SET_SUBMITTING", isSubmitting: false });
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
+
+    // Update field value
+    dispatch({
+      type: "UPDATE_FIELD",
+      field: name,
+      value: value,
     });
 
-    // Clear specific field error when user changes that field
-    if (formErrors[name]) {
-      setFormErrors({
-        ...formErrors,
-        [name]: "",
+    // Clear general error and success messages when user changes any field
+    if (errors.general || errors.success) {
+      dispatch({
+        type: "SET_ERROR",
+        errorType: "general",
+        error: "",
+      });
+
+      dispatch({
+        type: "SET_ERROR",
+        errorType: "success",
+        error: "",
       });
     }
-
-    // Clear general error message
-    if (message.text) {
-      setMessage({ text: "", color: "red" });
-    }
   };
-
-  // Get field error class based on whether the field has an error
-  const getFieldErrorClass = (fieldName) => {
-    return formErrors[fieldName]
-      ? `border-red-500 ${isDarkMode ? "bg-red-900/20" : "bg-red-50"}`
-      : isDarkMode
-      ? "border-gray-600 bg-gray-700"
-      : "border-gray-300 bg-gray-100";
-  };
-
-  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
-      <div
-        className={`w-full max-w-2xl p-8 rounded-lg shadow-xl ${
-          isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
-        }`}
-      >
-        <div className="flex justify-between items-center mb-4">
-          <h2
-            className={`text-2xl font-bold ${
-              isDarkMode ? "text-blue-400" : "text-blue-600"
-            }`}
-          >
-            {isEditMode ? "Edit Task" : "Create New Task"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            aria-label="Close"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditMode ? "Edit Task" : "Create New Task"}
+      size="lg"
+    >
+      {/* General error message */}
+      <ErrorMessage type="general" message={errors.general} />
+
+      {/* Success message */}
+      <ErrorMessage type="success" message={errors.success} />
+
+      {/* Backend validation errors */}
+      <ErrorMessage type="backend" errors={errors.backend} />
+
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              type="select"
+              label="Project"
+              name="assignedProjectId"
+              value={formData.assignedProjectId}
+              onChange={handleChange}
+              required
+              error={errors.fields.assignedProjectId}
+              placeholder="Select a project"
+              options={[
+                ...projects.map((project) => ({
+                  value: project.id,
+                  label: project.projectName,
+                })),
+              ]}
+            />
 
-        {message.text && (
-          <div
-            className={`mb-4 p-3 rounded-md ${
-              message.color === "red"
-                ? "bg-red-600 text-white"
-                : "bg-green-600 text-white"
-            }`}
+            <FormField
+              type="text"
+              label="Task Title"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder="Enter task title"
+              required
+              error={errors.fields.title}
+            />
+          </div>
+
+          <FormField
+            label="Description"
+            name="description"
+            className="w-full"
+            required
+            error={errors.fields.description}
           >
-            {message.text}
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder="Enter task description"
+              rows={3}
+              className={`w-full p-2 border rounded-md resize-none ${
+                isDarkMode
+                  ? "bg-gray-700 border-gray-600 text-white"
+                  : "bg-gray-100 border-gray-300 text-gray-800"
+              }`}
+            ></textarea>
+          </FormField>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              type="select"
+              label="Assigned Admin"
+              name="assignedAdminId"
+              value={formData.assignedAdminId}
+              onChange={handleChange}
+              required
+              error={errors.fields.assignedAdminId}
+              placeholder="Select an admin"
+              options={[
+                ...admins.map((admin) => ({
+                  value: admin.id,
+                  label: admin.user ? admin.user.name : `Admin ${admin.id}`,
+                })),
+              ]}
+            />
+
+            <FormField
+              type="select"
+              label="Assigned Student"
+              name="assignedStudentId"
+              value={formData.assignedStudentId}
+              onChange={handleChange}
+              required
+              error={errors.fields.assignedStudentId}
+              placeholder="Select a student"
+              options={[
+                ...students.map((student) => ({
+                  value: student.id,
+                  label: student.user
+                    ? student.user.name
+                    : `Student ${student.id}`,
+                })),
+              ]}
+            />
           </div>
-        )}
 
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              type="select"
+              label="Status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              required
+              error={errors.fields.status}
+              placeholder="Select a status"
+              options={[
+                { value: "Not Started", label: "Not Started" },
+                { value: "In Progress", label: "In Progress" },
+                { value: "Pending", label: "Pending" },
+                { value: "Completed", label: "Completed" },
+              ]}
+            />
+
+            <FormField
+              type="date"
+              label="Due Date"
+              name="dueDate"
+              value={formData.dueDate}
+              onChange={handleChange}
+              required
+              error={errors.date.dueDate}
+              min={!isEditMode ? getTodayFormatted() : undefined} // Only set min date for new tasks
+            />
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Project *</label>
-                <select
-                  name="assignedProjectId"
-                  value={formData.assignedProjectId}
-                  onChange={handleChange}
-                  className={`w-full p-2 border rounded-md ${getFieldErrorClass(
-                    "assignedProjectId"
-                  )} ${isDarkMode ? "text-white" : "text-gray-800"}`}
-                >
-                  <option value="">Select a project</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.projectName}
-                    </option>
-                  ))}
-                </select>
-                {formErrors.assignedProjectId && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {formErrors.assignedProjectId}
-                  </p>
-                )}
-              </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">
-                  Task Title *
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  placeholder="Enter task title"
-                  className={`w-full p-2 border rounded-md ${getFieldErrorClass(
-                    "title"
-                  )} ${isDarkMode ? "text-white" : "text-gray-800"}`}
-                />
-                {formErrors.title && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {formErrors.title}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">Description</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                placeholder="Enter task description"
-                rows={3}
-                className={`w-full p-2 border rounded-md resize-none ${
-                  isDarkMode
-                    ? "bg-gray-700 border-gray-600 text-white"
-                    : "bg-gray-100 border-gray-300 text-gray-800"
-                }`}
-              ></textarea>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">
-                  Assigned Admin *
-                </label>
-                <select
-                  name="assignedAdminId"
-                  value={formData.assignedAdminId}
-                  onChange={handleChange}
-                  className={`w-full p-2 border rounded-md ${getFieldErrorClass(
-                    "assignedAdminId"
-                  )} ${isDarkMode ? "text-white" : "text-gray-800"}`}
-                >
-                  <option value="">Select an admin</option>
-                  {admins.map((admin) => (
-                    <option key={admin.id} value={admin.id}>
-                      {admin.user ? admin.user.name : `Admin ${admin.id}`}
-                    </option>
-                  ))}
-                </select>
-                {formErrors.assignedAdminId && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {formErrors.assignedAdminId}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">
-                  Assigned Student *
-                </label>
-                <select
-                  name="assignedStudentId"
-                  value={formData.assignedStudentId}
-                  onChange={handleChange}
-                  className={`w-full p-2 border rounded-md ${getFieldErrorClass(
-                    "assignedStudentId"
-                  )} ${isDarkMode ? "text-white" : "text-gray-800"}`}
-                >
-                  <option value="">Select a student</option>
-                  {students.map((student) => (
-                    <option key={student.id} value={student.id}>
-                      {student.user
-                        ? student.user.name
-                        : `Student ${student.id}`}
-                    </option>
-                  ))}
-                </select>
-                {formErrors.assignedStudentId && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {formErrors.assignedStudentId}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Status *</label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className={`w-full p-2 border rounded-md ${getFieldErrorClass(
-                    "status"
-                  )} ${isDarkMode ? "text-white" : "text-gray-800"}`}
-                >
-                  <option value="Not Started">Not Started</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Completed">Completed</option>
-                </select>
-                {formErrors.status && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {formErrors.status}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Due Date *</label>
-                <input
-                  type="date"
-                  name="dueDate"
-                  value={formData.dueDate}
-                  min={!isEditMode ? getTodayFormatted() : undefined} // Only set min date for new tasks
-                  onChange={handleChange}
-                  className={`w-full p-2 border rounded-md ${getFieldErrorClass(
-                    "dueDate"
-                  )} ${isDarkMode ? "text-white" : "text-gray-800"}`}
-                />
-                {formErrors.dueDate && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {formErrors.dueDate}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className={`flex-1 py-3 px-4 rounded-md transition-colors ${
-                  isDarkMode
-                    ? "bg-gray-700 hover:bg-gray-600 text-white"
-                    : "bg-gray-200 hover:bg-gray-300 text-gray-800"
-                }`}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting || loading}
-                className={`flex-1 py-3 px-4 text-white font-medium rounded-md transition-colors ${
-                  submitting || loading
-                    ? "bg-blue-400 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
-                {submitting
-                  ? "Saving..."
-                  : loading
-                  ? "Loading..."
-                  : isEditMode
-                  ? "Update Task"
-                  : "Add Task"}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+          <div className="flex gap-4 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              fullWidth
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isSubmitting || loading}
+              fullWidth
+            >
+              {isSubmitting
+                ? "Saving..."
+                : loading
+                ? "Loading..."
+                : isEditMode
+                ? "Update Task"
+                : "Add Task"}
+            </Button>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 };
 

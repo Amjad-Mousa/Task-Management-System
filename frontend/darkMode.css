@@ -33,7 +33,7 @@
 body {
   background-color: var(--bg-light);
   color: var(--text-light);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.5s ease, color 0.5s ease;
 }
 
 /* Dark mode overrides */
@@ -68,7 +68,7 @@ aside {
   background-color: var(--sidebar-bg-light);
   color: var(--sidebar-text-light);
   border-right: 1px solid var(--sidebar-border-light);
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
 }
 
 .dark aside,
@@ -190,7 +190,7 @@ textarea:focus {
 /* Dashboard card styling */
 .dashboard-card {
   border: 1px solid var(--dashboard-card-border-light);
-  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  transition: background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
 }
 
 .dark .dashboard-card,

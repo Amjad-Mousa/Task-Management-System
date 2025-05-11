@@ -60,7 +60,7 @@ const Message = ({
     ${typeStyles[type]}
     ${positionClasses[position]}
     ${isFixed ? "fixed" : "absolute"}
-    py-2 px-4 text-center z-50 success-message
+    py-2 px-4 text-center z-[60] success-message
     ${className}
   `;
 

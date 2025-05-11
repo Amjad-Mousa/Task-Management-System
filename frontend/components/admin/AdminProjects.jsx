@@ -34,6 +34,7 @@ const AdminProjects = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [deleteMessage, setDeleteMessage] = useState(null);
   const [projectToDelete, setProjectToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState(null);
   const [sortConfig, setSortConfig] = useState({
@@ -156,19 +157,31 @@ const AdminProjects = () => {
 
   const confirmDeleteProject = async (id) => {
     try {
+      // Show a loading state in the modal
+      setIsDeleting(true);
+
       // Force no caching for mutations
       await executeQuery(DELETE_PROJECT_MUTATION, { id }, true, false);
 
       // Refresh projects to ensure we have the latest data
       fetchProjects(true);
 
+      // Show success message
       setDeleteMessage("Project deleted successfully!");
-      setProjectToDelete(null);
+
+      // Auto-close the modal after a short delay
+      setTimeout(() => {
+        setProjectToDelete(null);
+        setIsDeleting(false);
+      }, 500);
+
+      // Clear the success message after a longer delay
       setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
     } catch (err) {
       console.error("Error deleting project:", err);
       setDeleteMessage("Failed to delete project. Please try again.");
       setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+      setIsDeleting(false);
     }
   };
 
@@ -631,13 +644,14 @@ const AdminProjects = () => {
               </button>
               <button
                 onClick={() => confirmDeleteProject(projectToDelete.id)}
+                disabled={isDeleting}
                 className={`px-4 py-2 rounded-lg ${
                   isDarkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-red-300/80"
                     : "bg-red-100 hover:bg-red-200 text-red-700 border border-red-200"
-                }`}
+                } ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
               >
-                Confirm Delete
+                {isDeleting ? "Deleting..." : "Confirm Delete"}
               </button>
             </div>
           </div>

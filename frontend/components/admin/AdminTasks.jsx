@@ -40,6 +40,7 @@ const AdminTasks = () => {
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [taskToRemove, setTaskToRemove] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
@@ -189,6 +190,9 @@ const AdminTasks = () => {
   // Remove a task
   const removeTask = async () => {
     try {
+      // Show a loading state in the modal
+      setIsDeleting(true);
+
       const response = await executeQuery(
         DELETE_TASK_MUTATION,
         { id: taskToRemove },
@@ -200,18 +204,28 @@ const AdminTasks = () => {
         throw new Error("Failed to delete task");
       }
 
-      // Update local state
-      setTasks((prevTasks) =>
-        prevTasks.filter((task) => task.id !== taskToRemove)
-      );
+      // Refresh data from server to ensure UI is in sync
+      await fetchTasks(true);
 
-      setTaskToRemove(null);
+      // Also refresh projects in case any relationships have changed
+      await fetchProjects(true);
+
+      // Show success message
       setSuccessMessage("Task removed successfully!");
+
+      // Auto-close the modal after a short delay
+      setTimeout(() => {
+        setTaskToRemove(null);
+        setIsDeleting(false);
+      }, 500);
+
+      // Clear the success message after a longer delay
       setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
     } catch (err) {
       console.error("Error deleting task:", err);
       setError("Failed to delete task. Please try again.");
       setTimeout(() => setError(null), SUCCESS_MESSAGE_TIMEOUT);
+      setIsDeleting(false); // Make sure to reset deleting state on error
     }
   };
 
@@ -250,14 +264,19 @@ const AdminTasks = () => {
       await fetchTasks(true);
       await fetchProjects(true);
 
+      // Only close the modal and show success message if we get here (no errors)
       setSuccessMessage(successMsg);
       setIsTaskModalOpen(false);
       setTaskToEdit(null);
       setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+
+      return response; // Return the response so the modal can handle it
     } catch (err) {
       console.error("Error saving task:", err);
-      setError("Failed to save task. Please try again.");
-      setTimeout(() => setError(null), SUCCESS_MESSAGE_TIMEOUT);
+
+      // Don't close the modal or show a general error message
+      // Instead, throw the error so the modal can handle it
+      throw err;
     }
   };
 
@@ -532,6 +551,7 @@ const AdminTasks = () => {
                 <AutoSizer>
                   {({ height, width }) => (
                     <List
+                      key={`task-list-${getFilteredAndSortedTasks.length}`} // Force re-render when tasks change
                       ref={listRef}
                       height={height}
                       width={width}
@@ -551,49 +571,47 @@ const AdminTasks = () => {
 
       {/* Confirmation Dialog */}
       {taskToRemove && (
-        <div
-          className={`fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50`}
-        >
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50">
           <div
-            className={`rounded-lg p-6 max-w-sm w-full ${
-              isDarkMode ? "bg-gray-800" : "bg-white"
+            className={`p-6 rounded-lg w-full max-w-md ${
+              isDarkMode ? "bg-gray-800 text-white" : "bg-white text-gray-800"
             }`}
           >
-            <h3
-              className={`text-lg font-medium mb-4 ${
-                isDarkMode ? "text-white" : "text-gray-900"
+            <h2
+              className={`text-xl font-bold mb-4 ${
+                isDarkMode ? "text-blue-400" : "text-blue-600"
               }`}
             >
               Confirm Deletion
-            </h3>
+            </h2>
             <p
               className={`mb-6 ${
                 isDarkMode ? "text-gray-300" : "text-gray-600"
               }`}
             >
-              Are you sure you want to delete this task? This action cannot be
-              undone.
+              Are you sure you want to delete this task?
             </p>
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end space-x-4">
               <button
                 onClick={() => setTaskToRemove(null)}
                 className={`px-4 py-2 rounded-lg ${
                   isDarkMode
-                    ? "bg-gray-700 hover:bg-gray-600 text-gray-300"
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    ? "bg-gray-600 hover:bg-gray-500 text-white"
+                    : "bg-gray-200 hover:bg-gray-300 text-gray-800"
                 }`}
               >
                 Cancel
               </button>
               <button
                 onClick={removeTask}
+                disabled={isDeleting}
                 className={`px-4 py-2 rounded-lg ${
                   isDarkMode
                     ? "bg-gray-700 hover:bg-gray-600 text-red-300/80"
                     : "bg-red-100 hover:bg-red-200 text-red-700 border border-red-200"
-                }`}
+                } ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}`}
               >
-                Confirm Delete
+                {isDeleting ? "Deleting..." : "Confirm Delete"}
               </button>
             </div>
           </div>

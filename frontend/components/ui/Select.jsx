@@ -56,12 +56,17 @@ const Select = ({
         className={selectClasses}
         {...props}
       >
+        {/* Always show placeholder option and make it selectable */}
         <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option.value || option} value={option.value || option}>
-            {option.label || option}
-          </option>
-        ))}
+
+        {/* Map all options except the empty value option */}
+        {options
+          .filter((option) => (option.value || option) !== "")
+          .map((option) => (
+            <option key={option.value || option} value={option.value || option}>
+              {option.label || option}
+            </option>
+          ))}
       </select>
       {error && (
         <p className="mt-1 text-sm text-red-500 dark:text-red-400">{error}</p>
