@@ -1,3 +1,10 @@
+/**
+ * Task Resolver
+ *
+ * Handles operations related to tasks including fetching, creating, updating, and deleting task records.
+ *
+ * @module graphql/resolver/taskResolver
+ */
 const Task = require("../../models/taskModel");
 const Admin = require("../../models/adminModel");
 const Student = require("../../models/studentModel");
@@ -5,10 +12,15 @@ const Project = require("../../models/projectModel");
 const { checkAuth } = require("../../middleware/auth");
 const mongoose = require("mongoose");
 
+/**
+ * Validates task input data
+ *
+ * @param {Object} input - Task input data to validate
+ * @returns {Object} Object containing validation errors and validity status
+ */
 const validateTaskInput = (input) => {
   const errors = {};
 
-  // Title validation
   if (!input.title) {
     errors.title = "Task title is required";
   } else if (input.title.trim().length < 3) {
@@ -17,14 +29,12 @@ const validateTaskInput = (input) => {
     errors.title = "Task title cannot exceed 100 characters";
   }
 
-  // Description validation
   if (!input.description) {
     errors.description = "Task description is required";
   } else if (input.description.trim().length < 10) {
     errors.description = "Description must be at least 10 characters";
   }
 
-  // Due date validation
   if (!input.dueDate) {
     errors.dueDate = "Due date is required";
   } else {
@@ -34,7 +44,6 @@ const validateTaskInput = (input) => {
     }
   }
 
-  // Status validation
   if (input.status) {
     const validStatuses = [
       "Not Started",
@@ -53,11 +62,16 @@ const validateTaskInput = (input) => {
   };
 };
 
-// Validate references to other entities
+/**
+ * Validates references to other entities in task data
+ *
+ * @async
+ * @param {Object} input - Task input data containing references to validate
+ * @returns {Promise<Object>} Object containing validation errors and validity status
+ */
 const validateReferences = async (input) => {
   const errors = {};
 
-  // Validate admin reference
   if (input.assignedAdminId) {
     if (!mongoose.Types.ObjectId.isValid(input.assignedAdminId)) {
       errors.assignedAdminId = "Invalid admin ID format";
@@ -69,7 +83,6 @@ const validateReferences = async (input) => {
     }
   }
 
-  // Validate student reference
   if (input.assignedStudentId) {
     if (!mongoose.Types.ObjectId.isValid(input.assignedStudentId)) {
       errors.assignedStudentId = "Invalid student ID format";
@@ -81,7 +94,6 @@ const validateReferences = async (input) => {
     }
   }
 
-  // Validate project reference
   if (input.assignedProjectId) {
     if (!mongoose.Types.ObjectId.isValid(input.assignedProjectId)) {
       errors.assignedProjectId = "Invalid project ID format";
@@ -93,7 +105,6 @@ const validateReferences = async (input) => {
     }
   }
 
-  // Validate creator admin reference
   if (input.createdByAdminId) {
     if (!mongoose.Types.ObjectId.isValid(input.createdByAdminId)) {
       errors.createdByAdminId = "Invalid admin ID format";
@@ -111,6 +122,16 @@ const validateReferences = async (input) => {
   };
 };
 
+/**
+ * Get a task by ID
+ *
+ * @async
+ * @param {Object} _ - Parent resolver (not used)
+ * @param {Object} params - Query parameters
+ * @param {string} params.id - Task ID
+ * @returns {Promise<Object>} Task data
+ * @throws {Error} If task not found
+ */
 const getTaskById = async (_, { id }) => {
   try {
     const task = await Task.findById(id);
@@ -122,6 +143,14 @@ const getTaskById = async (_, { id }) => {
     throw new Error(`Error fetching task: ${error.message}`);
   }
 };
+
+/**
+ * Get all tasks
+ *
+ * @async
+ * @returns {Promise<Array>} List of all tasks
+ * @throws {Error} If fetching tasks fails
+ */
 const getAllTasks = async () => {
   try {
     const tasks = await Task.find();
@@ -130,6 +159,17 @@ const getAllTasks = async () => {
     throw new Error(`Error fetching tasks: ${error.message}`);
   }
 };
+
+/**
+ * Get tasks by project ID
+ *
+ * @async
+ * @param {Object} _ - Parent resolver (not used)
+ * @param {Object} params - Query parameters
+ * @param {string} params.projectId - Project ID
+ * @returns {Promise<Array>} List of tasks associated with the project
+ * @throws {Error} If fetching tasks fails
+ */
 const getTasksByProject = async (_, { projectId }) => {
   try {
     const tasks = await Task.find({ assignedProject: projectId });
@@ -138,6 +178,17 @@ const getTasksByProject = async (_, { projectId }) => {
     throw new Error(`Error fetching tasks: ${error.message}`);
   }
 };
+
+/**
+ * Get recent tasks with limit
+ *
+ * @async
+ * @param {Object} _ - Parent resolver (not used)
+ * @param {Object} params - Query parameters
+ * @param {number} params.limit - Maximum number of tasks to return
+ * @returns {Promise<Array>} List of recent tasks
+ * @throws {Error} If fetching tasks fails
+ */
 const getRecentTasks = async (_, { limit }) => {
   try {
     const tasks = await Task.find().sort({ updatedAt: -1 }).limit(limit);
@@ -146,23 +197,31 @@ const getRecentTasks = async (_, { limit }) => {
     throw new Error(`Error fetching recent tasks: ${error.message}`);
   }
 };
+
+/**
+ * Create a new task
+ *
+ * @async
+ * @param {Object} _ - Parent resolver (not used)
+ * @param {Object} params - Mutation parameters
+ * @param {Object} params.input - Task creation input data
+ * @param {Object} context - GraphQL context containing request and response objects
+ * @returns {Promise<Object>} Newly created task
+ * @throws {Error} If user is not authenticated, not authorized, or validation fails
+ */
 const createTask = async (_, { input }, context) => {
   try {
-    // Check authentication
     const decodedToken = checkAuth(context);
 
-    // Only admins can create tasks
     if (decodedToken.role !== "admin") {
       throw new Error("Not authorized to create tasks");
     }
 
-    // Validate input data
     const { errors: inputErrors, valid: inputValid } = validateTaskInput(input);
     if (!inputValid) {
       throw new Error(`Validation error: ${JSON.stringify(inputErrors)}`);
     }
 
-    // Validate references to other entities
     const { errors: refErrors, valid: refValid } = await validateReferences(
       input
     );
@@ -172,12 +231,10 @@ const createTask = async (_, { input }, context) => {
       );
     }
 
-    // Set default status if not provided
     if (!input.status) {
       input.status = "Not Started";
     }
 
-    // Create new task
     const task = new Task({
       title: input.title,
       description: input.description,
@@ -194,28 +251,36 @@ const createTask = async (_, { input }, context) => {
     throw new Error(`Error creating task: ${error.message}`);
   }
 };
+
+/**
+ * Update an existing task
+ *
+ * @async
+ * @param {Object} _ - Parent resolver (not used)
+ * @param {Object} params - Mutation parameters
+ * @param {string} params.id - Task ID
+ * @param {Object} params.input - Task update input data
+ * @param {Object} context - GraphQL context containing request and response objects
+ * @returns {Promise<Object>} Updated task
+ * @throws {Error} If user is not authenticated, not authorized, or validation fails
+ */
 const updateTask = async (_, { id, input }, context) => {
   try {
-    // Check authentication
     const decodedToken = checkAuth(context);
 
-    // Only admins and students can update tasks
     if (decodedToken.role !== "admin" && decodedToken.role !== "student") {
       throw new Error("Not authorized to update tasks");
     }
 
-    // Validate ID format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new Error("Invalid task ID format");
     }
 
-    // Check if task exists
     const existingTask = await Task.findById(id);
     if (!existingTask) {
       throw new Error("Task not found");
     }
 
-    // Only validate fields that are being updated
     const fieldsToValidate = {};
     if (input.title !== undefined) fieldsToValidate.title = input.title;
     if (input.description !== undefined)
@@ -231,7 +296,6 @@ const updateTask = async (_, { id, input }, context) => {
       }
     }
 
-    // Validate references if they're being updated
     const refsToValidate = {};
     if (input.assignedAdminId !== undefined)
       refsToValidate.assignedAdminId = input.assignedAdminId;
@@ -251,7 +315,6 @@ const updateTask = async (_, { id, input }, context) => {
       }
     }
 
-    // Prepare update object
     const updateData = {};
     if (input.title !== undefined) updateData.title = input.title;
     if (input.description !== undefined)
@@ -266,7 +329,6 @@ const updateTask = async (_, { id, input }, context) => {
     if (input.assignedProjectId !== undefined)
       updateData.assignedProject = input.assignedProjectId;
 
-    // Update the task
     const updatedTask = await Task.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
@@ -277,17 +339,26 @@ const updateTask = async (_, { id, input }, context) => {
     throw new Error(`Error updating task: ${error.message}`);
   }
 };
+
+/**
+ * Delete a task
+ *
+ * @async
+ * @param {Object} _ - Parent resolver (not used)
+ * @param {Object} params - Mutation parameters
+ * @param {string} params.id - Task ID
+ * @param {Object} context - GraphQL context containing request and response objects
+ * @returns {Promise<Object>} Deleted task
+ * @throws {Error} If user is not authenticated or not authorized
+ */
 const deleteTask = async (_, { id }, context) => {
   try {
-    // Check authentication
     const decodedToken = checkAuth(context);
 
-    // Only admins can delete tasks
     if (decodedToken.role !== "admin") {
       throw new Error("Not authorized to delete tasks");
     }
 
-    // Delete the task
     const deletedTask = await Task.findByIdAndDelete(id);
     return deletedTask;
   } catch (error) {
@@ -295,7 +366,13 @@ const deleteTask = async (_, { id }, context) => {
   }
 };
 
-// Resolver for getting the assigned admin for a task
+/**
+ * Get the admin assigned to a task
+ *
+ * @async
+ * @param {Object} parent - Parent resolver containing task data
+ * @returns {Promise<Object|null>} Admin assigned to the task or null if not found
+ */
 const getTaskAssignedAdmin = async (parent) => {
   try {
     if (!parent.assignedAdmin) return null;
@@ -306,7 +383,13 @@ const getTaskAssignedAdmin = async (parent) => {
   }
 };
 
-// Resolver for getting the assigned student for a task
+/**
+ * Get the student assigned to a task
+ *
+ * @async
+ * @param {Object} parent - Parent resolver containing task data
+ * @returns {Promise<Object|null>} Student assigned to the task or null if not found
+ */
 const getTaskAssignedStudent = async (parent) => {
   try {
     if (!parent.assignedStudent) return null;
@@ -317,7 +400,13 @@ const getTaskAssignedStudent = async (parent) => {
   }
 };
 
-// Resolver for getting the assigned project for a task
+/**
+ * Get the project assigned to a task
+ *
+ * @async
+ * @param {Object} parent - Parent resolver containing task data
+ * @returns {Promise<string|null>} Project ID assigned to the task or null if not found
+ */
 const getTaskAssignedProject = async (parent) => {
   try {
     if (!parent.assignedProject) return null;
@@ -328,7 +417,13 @@ const getTaskAssignedProject = async (parent) => {
   }
 };
 
-// Resolver for getting the admin who created the task
+/**
+ * Get the admin who created the task
+ *
+ * @async
+ * @param {Object} parent - Parent resolver containing task data
+ * @returns {Promise<Object|null>} Admin who created the task or null if not found
+ */
 const getTaskCreatedByAdmin = async (parent) => {
   try {
     if (!parent.createdByAdmin) return null;
@@ -339,6 +434,10 @@ const getTaskCreatedByAdmin = async (parent) => {
   }
 };
 
+/**
+ * Export task resolver functions
+ * @type {Object}
+ */
 module.exports = {
   getRecentTasks,
   getTaskById,

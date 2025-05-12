@@ -1,15 +1,33 @@
+/**
+ * Student Resolver
+ *
+ * Handles operations related to student users including fetching, creating, updating, and deleting student records.
+ *
+ * @module graphql/resolver/studentResolver
+ */
 const Student = require("../../models/studentModel");
 const User = require("../../models/userModel");
 const mongoose = require("mongoose");
 const { checkAuth } = require("../../middleware/auth");
 
+/**
+ * Student resolvers for GraphQL operations
+ * @type {Object}
+ */
 const studentResolvers = {
-  // Get all students
+  /**
+   * Get all students
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} _args - Query arguments (not used)
+   * @param {Object} context - GraphQL context containing request and response objects
+   * @returns {Promise<Array>} List of all students
+   * @throws {Error} If user is not authenticated or not authorized
+   */
   students: async (_, _args, context) => {
-    // Only allow authenticated users to access all students
     const decodedToken = checkAuth(context);
 
-    // Only admins can see all students
     if (decodedToken.role !== "admin") {
       throw new Error("Not authorized to view all students");
     }
@@ -17,9 +35,18 @@ const studentResolvers = {
     return await Student.find();
   },
 
-  // Get a single student by ID
+  /**
+   * Get a single student by ID
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} params - Query parameters
+   * @param {string} params.id - Student ID
+   * @param {Object} context - GraphQL context containing request and response objects
+   * @returns {Promise<Object>} Student data
+   * @throws {Error} If user is not authenticated, not authorized, or student not found
+   */
   student: async (_, { id }, context) => {
-    // Only allow authenticated users to access student details
     const decodedToken = checkAuth(context);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -31,7 +58,6 @@ const studentResolvers = {
       throw new Error("Student not found");
     }
 
-    // Check if user is admin or the student themselves
     const studentUser = await User.findById(student.user_id);
     if (
       decodedToken.role !== "admin" &&
@@ -43,16 +69,24 @@ const studentResolvers = {
     return student;
   },
 
-  // Get a student by user ID
+  /**
+   * Get a student by user ID
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} params - Query parameters
+   * @param {string} params.userId - User ID
+   * @param {Object} context - GraphQL context containing request and response objects
+   * @returns {Promise<Object>} Student data
+   * @throws {Error} If user is not authenticated, not authorized, or student not found
+   */
   studentByUserId: async (_, { userId }, context) => {
-    // Only allow authenticated users to access student details
     const decodedToken = checkAuth(context);
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       throw new Error("Invalid user ID");
     }
 
-    // Check if user is admin or the student themselves
     if (decodedToken.role !== "admin" && decodedToken.userId !== userId) {
       throw new Error("Not authorized to view this student's details");
     }
@@ -65,15 +99,29 @@ const studentResolvers = {
     return student;
   },
 
-  // Get user details for a student
+  /**
+   * Get user details for a student
+   *
+   * @async
+   * @param {Object} parent - Parent resolver containing student data
+   * @returns {Promise<Object>} User data associated with the student
+   */
   getStudentUser: async (parent) => {
     return await User.findById(parent.user_id);
   },
 
-  // Create a new student
+  /**
+   * Create a new student
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} params - Mutation parameters
+   * @param {Object} params.input - Student creation input data
+   * @returns {Promise<Object>} Newly created student
+   * @throws {Error} If validation fails or student creation fails
+   */
   createStudent: async (_, { input }) => {
     try {
-      // Check if user exists
       if (!mongoose.Types.ObjectId.isValid(input.user_id)) {
         throw new Error("Invalid user ID");
       }
@@ -83,13 +131,11 @@ const studentResolvers = {
         throw new Error("User not found");
       }
 
-      // Check if user is already a student
       const existingStudent = await Student.findOne({ user_id: input.user_id });
       if (existingStudent) {
         throw new Error("This user is already a student");
       }
 
-      // Create new student
       const student = new Student(input);
       return await student.save();
     } catch (error) {
@@ -97,22 +143,30 @@ const studentResolvers = {
     }
   },
 
-  // Update an existing student
+  /**
+   * Update an existing student
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} params - Mutation parameters
+   * @param {string} params.id - Student ID
+   * @param {Object} params.input - Student update input data
+   * @param {Object} context - GraphQL context containing request and response objects
+   * @returns {Promise<Object>} Updated student
+   * @throws {Error} If user is not authenticated, not authorized, or student not found
+   */
   updateStudent: async (_, { id, input }, context) => {
-    // Check authentication
     const decodedToken = checkAuth(context);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new Error("Invalid student ID");
     }
 
-    // Find the student
     const student = await Student.findById(id);
     if (!student) {
       throw new Error("Student not found");
     }
 
-    // Check if user is admin or the student themselves
     const studentUser = await User.findById(student.user_id);
     if (
       decodedToken.role !== "admin" &&
@@ -121,19 +175,26 @@ const studentResolvers = {
       throw new Error("Not authorized to update this student");
     }
 
-    // Update the student
     const updatedStudent = await Student.findByIdAndUpdate(id, input, {
       new: true,
     });
     return updatedStudent;
   },
 
-  // Delete a student
+  /**
+   * Delete a student
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} params - Mutation parameters
+   * @param {string} params.id - Student ID
+   * @param {Object} context - GraphQL context containing request and response objects
+   * @returns {Promise<Object>} Deleted student
+   * @throws {Error} If user is not authenticated, not authorized, or student not found
+   */
   deleteStudent: async (_, { id }, context) => {
-    // Check authentication
     const decodedToken = checkAuth(context);
 
-    // Only admins can delete students
     if (decodedToken.role !== "admin") {
       throw new Error("Not authorized to delete students");
     }
@@ -142,7 +203,6 @@ const studentResolvers = {
       throw new Error("Invalid student ID");
     }
 
-    // Delete the student
     const student = await Student.findByIdAndDelete(id);
     if (!student) {
       throw new Error("Student not found");
@@ -152,4 +212,8 @@ const studentResolvers = {
   },
 };
 
+/**
+ * Export student resolver functions
+ * @type {Object}
+ */
 module.exports = studentResolvers;

@@ -1,3 +1,12 @@
+/**
+ * Task Management System Server
+ *
+ * Main server file that sets up Express with GraphQL, MongoDB connection,
+ * and necessary middleware for the Task Management System.
+ *
+ * @module server
+ */
+
 const express = require("express");
 const mongoose = require("mongoose");
 const { createHandler } = require("graphql-http/lib/use/express");
@@ -32,9 +41,16 @@ const {
   taskMutationFields,
 } = require("./graphql/schema/taskSchema");
 
+/**
+ * Express application instance
+ * @type {express.Application}
+ */
 const app = express();
 
-// Configure CORS to allow credentials
+/**
+ * Configure CORS middleware to allow credentials and specify allowed origin
+ * This is essential for cross-domain requests with authentication
+ */
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
@@ -42,15 +58,26 @@ app.use(
   })
 );
 
-// Add cookie-parser middleware
+/**
+ * Add cookie-parser middleware to parse cookies in requests
+ * Required for session-based authentication
+ */
 app.use(cookieParser());
 
+/**
+ * Connect to MongoDB database using connection string from environment variables
+ * @returns {Promise} MongoDB connection promise
+ */
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch(console.error);
 
-// Define Root Query
+/**
+ * Define GraphQL Root Query type
+ * Combines all query fields from different schema modules
+ * @type {GraphQLObjectType}
+ */
 const RootQuery = new GraphQLObjectType({
   name: "RootQuery",
   fields: {
@@ -63,7 +90,11 @@ const RootQuery = new GraphQLObjectType({
   },
 });
 
-// Define Root Mutation
+/**
+ * Define GraphQL Root Mutation type
+ * Combines all mutation fields from different schema modules
+ * @type {GraphQLObjectType}
+ */
 const RootMutation = new GraphQLObjectType({
   name: "RootMutation",
   fields: {
@@ -76,13 +107,19 @@ const RootMutation = new GraphQLObjectType({
   },
 });
 
-// Create the schema
+/**
+ * Create the GraphQL schema with query and mutation types
+ * @type {GraphQLSchema}
+ */
 const schema = new GraphQLSchema({
   query: RootQuery,
   mutation: RootMutation,
 });
 
-// Create GraphQL handler with context that includes response object
+/**
+ * Set up GraphQL HTTP handler at /graphql endpoint
+ * Includes context with request and response objects for authentication
+ */
 app.use("/graphql", (req, res, next) => {
   const handler = createHandler({
     schema,
@@ -103,13 +140,20 @@ app.use("/graphql", (req, res, next) => {
   handler(req, res, next);
 });
 
-// Serve GraphiQL IDE
+/**
+ * Serve Ruru GraphQL IDE at the root endpoint
+ * Provides a visual interface for exploring and testing the GraphQL API
+ */
 const { ruruHTML } = require("ruru/server");
 app.get("/", (_req, res) => {
   res.type("html");
   res.end(ruruHTML({ endpoint: "/graphql" }));
 });
 
+/**
+ * Start the Express server on the specified port
+ * @listens {number} process.env.PORT - Port number from environment variables
+ */
 app.listen(process.env.PORT, () => {
   console.log(
     `🚀 GraphQL server running at http://localhost:${process.env.PORT}`

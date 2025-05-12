@@ -1,15 +1,33 @@
+/**
+ * Admin Resolver
+ *
+ * Handles operations related to admin users including fetching, creating, updating, and deleting admin records.
+ *
+ * @module graphql/resolver/adminResolver
+ */
 const Admin = require("../../models/adminModel");
 const User = require("../../models/userModel");
 const mongoose = require("mongoose");
 const { checkAuth } = require("../../middleware/auth");
 
+/**
+ * Admin resolvers for GraphQL operations
+ * @type {Object}
+ */
 const adminResolvers = {
-  // Get all admins
+  /**
+   * Get all admin users
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} _args - Query arguments (not used)
+   * @param {Object} context - GraphQL context containing request and response objects
+   * @returns {Promise<Array>} List of all admin users
+   * @throws {Error} If user is not authenticated or not authorized
+   */
   admins: async (_, _args, context) => {
-    // Only allow authenticated users to access all admins
     const decodedToken = checkAuth(context);
 
-    // Only admins can see all admins
     if (decodedToken.role !== "admin") {
       throw new Error("Not authorized to view all admins");
     }
@@ -17,12 +35,20 @@ const adminResolvers = {
     return await Admin.find();
   },
 
-  // Get a single admin by ID
+  /**
+   * Get a single admin by ID
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} params - Query parameters
+   * @param {string} params.id - Admin ID
+   * @param {Object} context - GraphQL context containing request and response objects
+   * @returns {Promise<Object>} Admin user data
+   * @throws {Error} If user is not authenticated, not authorized, or admin not found
+   */
   admin: async (_, { id }, context) => {
-    // Only allow authenticated users to access admin details
     const decodedToken = checkAuth(context);
 
-    // Only admins can see admin details
     if (decodedToken.role !== "admin") {
       throw new Error("Not authorized to view admin details");
     }
@@ -39,16 +65,24 @@ const adminResolvers = {
     return admin;
   },
 
-  // Get an admin by user ID
+  /**
+   * Get an admin by user ID
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} params - Query parameters
+   * @param {string} params.userId - User ID
+   * @param {Object} context - GraphQL context containing request and response objects
+   * @returns {Promise<Object>} Admin user data
+   * @throws {Error} If user is not authenticated, not authorized, or admin not found
+   */
   adminByUserId: async (_, { userId }, context) => {
-    // Only allow authenticated users to access admin details
     const decodedToken = checkAuth(context);
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       throw new Error("Invalid user ID");
     }
 
-    // Check if user is admin or the admin themselves
     if (decodedToken.role !== "admin") {
       throw new Error("Not authorized to view admin details");
     }
@@ -61,15 +95,29 @@ const adminResolvers = {
     return admin;
   },
 
-  // Get user details for an admin
+  /**
+   * Get user details for an admin
+   *
+   * @async
+   * @param {Object} parent - Parent resolver containing admin data
+   * @returns {Promise<Object>} User data associated with the admin
+   */
   getAdminUser: async (parent) => {
     return await User.findById(parent.user_id);
   },
 
-  // Create a new admin
+  /**
+   * Create a new admin
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} params - Mutation parameters
+   * @param {Object} params.input - Admin creation input data
+   * @returns {Promise<Object>} Newly created admin
+   * @throws {Error} If validation fails or admin creation fails
+   */
   createAdmin: async (_, { input }) => {
     try {
-      // Check if user exists
       if (!mongoose.Types.ObjectId.isValid(input.user_id)) {
         throw new Error("Invalid user ID");
       }
@@ -79,18 +127,15 @@ const adminResolvers = {
         throw new Error("User not found");
       }
 
-      // Check if user is already an admin
       const existingAdmin = await Admin.findOne({ user_id: input.user_id });
       if (existingAdmin) {
         throw new Error("This user is already an admin");
       }
 
-      // Set default permissions if none provided
       if (!input.permissions || input.permissions.length === 0) {
         input.permissions = ["read", "write"];
       }
 
-      // Create new admin
       const admin = new Admin(input);
       return await admin.save();
     } catch (error) {
@@ -98,12 +143,21 @@ const adminResolvers = {
     }
   },
 
-  // Update an existing admin
+  /**
+   * Update an existing admin
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} params - Mutation parameters
+   * @param {string} params.id - Admin ID
+   * @param {Object} params.input - Admin update input data
+   * @param {Object} context - GraphQL context containing request and response objects
+   * @returns {Promise<Object>} Updated admin
+   * @throws {Error} If user is not authenticated, not authorized, or admin not found
+   */
   updateAdmin: async (_, { id, input }, context) => {
-    // Check authentication
     const decodedToken = checkAuth(context);
 
-    // Only admins can update admins
     if (decodedToken.role !== "admin") {
       throw new Error("Not authorized to update admins");
     }
@@ -112,25 +166,31 @@ const adminResolvers = {
       throw new Error("Invalid admin ID");
     }
 
-    // Find the admin
     const admin = await Admin.findById(id);
     if (!admin) {
       throw new Error("Admin not found");
     }
 
-    // Update the admin
     const updatedAdmin = await Admin.findByIdAndUpdate(id, input, {
       new: true,
     });
     return updatedAdmin;
   },
 
-  // Delete an admin
+  /**
+   * Delete an admin
+   *
+   * @async
+   * @param {Object} _ - Parent resolver (not used)
+   * @param {Object} params - Mutation parameters
+   * @param {string} params.id - Admin ID
+   * @param {Object} context - GraphQL context containing request and response objects
+   * @returns {Promise<Object>} Deleted admin
+   * @throws {Error} If user is not authenticated, not authorized, or admin not found
+   */
   deleteAdmin: async (_, { id }, context) => {
-    // Check authentication
     const decodedToken = checkAuth(context);
 
-    // Only admins can delete admins
     if (decodedToken.role !== "admin") {
       throw new Error("Not authorized to delete admins");
     }
@@ -139,7 +199,6 @@ const adminResolvers = {
       throw new Error("Invalid admin ID");
     }
 
-    // Delete the admin
     const admin = await Admin.findByIdAndDelete(id);
     if (!admin) {
       throw new Error("Admin not found");
@@ -149,4 +208,8 @@ const adminResolvers = {
   },
 };
 
+/**
+ * Export admin resolver functions
+ * @type {Object}
+ */
 module.exports = adminResolvers;
