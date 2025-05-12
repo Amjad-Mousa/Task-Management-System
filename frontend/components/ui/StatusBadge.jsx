@@ -20,8 +20,12 @@ const StatusBadge = ({ status, className = "", size = "md" }) => {
       : "bg-red-100 text-red-700 border-red-200",
 
     inprogress: isDarkMode
-      ? "bg-yellow-900/30 text-yellow-300 border-yellow-800"
-      : "bg-yellow-100 text-yellow-700 border-yellow-200",
+      ? "bg-yellow-800/40 text-yellow-300 border-yellow-700"
+      : "bg-yellow-100/80 text-yellow-700 border-yellow-300",
+
+    in_progress: isDarkMode
+      ? "bg-yellow-800/40 text-yellow-300 border-yellow-700"
+      : "bg-yellow-100/80 text-yellow-700 border-yellow-300",
 
     pending: isDarkMode
       ? "bg-gray-700/30 text-gray-300 border-gray-600"
@@ -48,8 +52,14 @@ const StatusBadge = ({ status, className = "", size = "md" }) => {
 
   // Format status for display
   const formatStatus = (status) => {
+    // Handle special case for "In_Progress"
+    if (status === "In_Progress") {
+      return "In Progress";
+    }
+
     return status
-      .replace(/([A-Z])/g, " $1")
+      .replace(/([A-Z_])/g, " $1") // Add space before capitals and underscores
+      .replace(/_/g, " ") // Replace underscores with spaces
       .trim()
       .split(" ")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

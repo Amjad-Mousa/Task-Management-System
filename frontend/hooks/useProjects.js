@@ -106,3 +106,5 @@ export function useProjects() {
     deleteProject,
   };
 }
+
+export default useProjects;
