@@ -1,13 +1,13 @@
 import {
   useState,
-  useEffect,
   useContext,
   useRef,
   useCallback,
   useMemo,
+  useEffect,
 } from "react";
 import { DarkModeContext } from "../../Context/DarkModeContext";
-import { useGraphQL } from "../../Context/GraphQLContext";
+import { useProjects } from "../../hooks/useProjects";
 import { DashboardLayout } from "../layout";
 import ProjectFormModal from "../ProjectFormModal";
 import { FixedSizeGrid as Grid } from "react-window";
@@ -19,17 +19,19 @@ import {
   getStatusFromProgress,
   SUCCESS_MESSAGE_TIMEOUT,
 } from "../../utils/adminUtils";
-import {
-  GET_PROJECTS_QUERY,
-  CREATE_PROJECT_MUTATION,
-  UPDATE_PROJECT_MUTATION,
-  DELETE_PROJECT_MUTATION,
-} from "../../graphql/queries";
 
 const AdminProjects = () => {
   const { isDarkMode } = useContext(DarkModeContext);
-  const { executeQuery, loading, error } = useGraphQL();
-  const [projects, setProjects] = useState([]);
+  const {
+    projects,
+    loading,
+    error,
+    fetchProjects,
+    addProject,
+    updateProject,
+    deleteProject,
+  } = useProjects();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState(null);
   const [deleteMessage, setDeleteMessage] = useState(null);
@@ -78,29 +80,7 @@ const AdminProjects = () => {
   // Grid configuration
   const gridRef = useRef(null);
 
-  // Fetch projects from API with caching
-  const fetchProjects = useCallback(
-    async (forceRefresh = false) => {
-      try {
-        // Pass useCache=false to force a refresh when needed
-        const data = await executeQuery(
-          GET_PROJECTS_QUERY,
-          {},
-          true,
-          !forceRefresh
-        );
-        if (data && data.projects) {
-          setProjects(data.projects);
-        }
-      } catch (err) {
-        console.error("Error fetching projects:", err);
-        setDeleteMessage("Failed to load projects. Please try again.");
-        setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
-      }
-    },
-    [executeQuery, setDeleteMessage]
-  );
-
+  // Initial fetch and refresh interval
   useEffect(() => {
     fetchProjects();
 
@@ -160,11 +140,8 @@ const AdminProjects = () => {
       // Show a loading state in the modal
       setIsDeleting(true);
 
-      // Force no caching for mutations
-      await executeQuery(DELETE_PROJECT_MUTATION, { id }, true, false);
-
-      // Refresh projects to ensure we have the latest data
-      fetchProjects(true);
+      // Delete the project
+      await deleteProject(id);
 
       // Show success message
       setDeleteMessage("Project deleted successfully!");
@@ -175,13 +152,12 @@ const AdminProjects = () => {
         setIsDeleting(false);
       }, 500);
 
-      // Clear the success message after a longer delay
+      // Clear success message after a timeout
       setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
     } catch (err) {
-      console.error("Error deleting project:", err);
       setDeleteMessage("Failed to delete project. Please try again.");
-      setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
       setIsDeleting(false);
+      setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
     }
   };
 
@@ -191,69 +167,50 @@ const AdminProjects = () => {
       let successMessage;
 
       if (projectToEdit) {
-        // Update existing project - force no caching for mutations
-        response = await executeQuery(
-          UPDATE_PROJECT_MUTATION,
-          {
-            id: projectData.id,
-            input: projectData.input,
-          },
-          true,
-          false
-        );
+        // Update existing project
+        response = await updateProject(projectData.id, projectData.input);
         successMessage = "Project updated successfully!";
       } else {
-        // Add new project - force no caching for mutations
-        response = await executeQuery(
-          CREATE_PROJECT_MUTATION,
-          {
-            input: projectData.input,
-          },
-          true,
-          false
-        );
+        // Add new project
+        response = await addProject(projectData.input);
         successMessage = "Project added successfully!";
       }
 
-      // Refresh projects after successful submission - force refresh from server
-      fetchProjects(true);
-
-      setDeleteMessage(successMessage);
+      // Close the modal
       setIsProjectModalOpen(false);
       setProjectToEdit(null);
+
+      // Show success message
+      setDeleteMessage(successMessage);
       setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
 
-      return response; // Return the response so the modal can handle it
+      return response;
     } catch (err) {
       console.error("Error submitting project:", err);
-
-      // Don't close the modal or show a general error message
-      // Instead, throw the error so the modal can handle it
-      throw err;
+      setDeleteMessage("Failed to save project. Please try again.");
+      setTimeout(() => setDeleteMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+      return null;
     }
   };
 
   // Project Card Component (for virtualization)
   const ProjectCard = useCallback(
     ({ project, style }) => {
-      // Get student names from the studentsWorkingOn array - memoized for performance
-      const studentCount = useMemo(() => {
-        return project.studentsWorkingOn
-          ? project.studentsWorkingOn.filter(
-              (student) => student.user && student.user.name
-            ).length
-          : 0;
-      }, [project.studentsWorkingOn]);
+      // Get student count
+      const studentCount = project.studentsWorkingOn
+        ? project.studentsWorkingOn.filter(
+            (student) => student.user && student.user.name
+          ).length
+        : 0;
 
-      // Get status display - memoized for performance
-      const statusDisplay = useMemo(() => {
-        return getStatusFromProgress(project.progress, project.status);
-      }, [project.progress, project.status]);
+      // Get status display
+      const statusDisplay = getStatusFromProgress(
+        project.progress,
+        project.status
+      );
 
-      // Get status color class - memoized for performance
-      const statusColorClass = useMemo(() => {
-        return getStatusColor(statusDisplay, isDarkMode);
-      }, [statusDisplay, isDarkMode]);
+      // Get status color class
+      const statusColorClass = getStatusColor(statusDisplay, isDarkMode);
 
       return (
         <div style={style} className="p-2">
@@ -406,7 +363,7 @@ const AdminProjects = () => {
 
         <button
           onClick={() => {
-            setProjectToEdit(null); // Ensure we're in "add" mode
+            setProjectToEdit(null);
             setIsProjectModalOpen(true);
           }}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 btn-hover-effect tooltip flex items-center gap-2"

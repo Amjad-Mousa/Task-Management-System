@@ -4,6 +4,7 @@ import {
   useState,
   useRef,
   useCallback,
+  useMemo,
 } from "react";
 import { executeGraphQL } from "../utils/graphqlClient";
 
@@ -129,12 +130,15 @@ export const GraphQLProvider = ({ children }) => {
   );
 
   // Context value
-  const value = {
-    loading,
-    error,
-    executeQuery,
-    clearCache,
-  };
+  const value = useMemo(
+    () => ({
+      loading,
+      error,
+      executeQuery,
+      clearCache,
+    }),
+    [loading, error, executeQuery, clearCache]
+  );
 
   return (
     <GraphQLContext.Provider value={value}>{children}</GraphQLContext.Provider>

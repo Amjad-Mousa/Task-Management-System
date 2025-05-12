@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect, useMemo } from "react";
 
 export const DarkModeContext = createContext();
 
@@ -7,38 +7,45 @@ export const DarkModeProvider = ({ children }) => {
 
   // Load saved preference from localStorage first
   useEffect(() => {
-    const storedTheme = localStorage.getItem('darkMode');
+    const storedTheme = localStorage.getItem("darkMode");
     if (storedTheme !== null) {
-      setIsDarkMode(storedTheme === 'true');
+      setIsDarkMode(storedTheme === "true");
     }
   }, []);
 
   // Apply dark mode class to HTML element
   useEffect(() => {
     if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      document.body.classList.add('dark-mode');
+      document.documentElement.classList.add("dark");
+      document.body.classList.add("dark-mode");
     } else {
-      document.documentElement.classList.remove('dark');
-      document.body.classList.remove('dark-mode');
+      document.documentElement.classList.remove("dark");
+      document.body.classList.remove("dark-mode");
     }
 
     // Force a repaint to ensure all styles are applied correctly
-    document.body.style.transition = 'background-color 0.3s ease, color 0.3s ease';
+    document.body.style.transition =
+      "background-color 0.3s ease, color 0.3s ease";
 
-    console.log('Dark mode changed:', isDarkMode);
+    console.log("Dark mode changed:", isDarkMode);
   }, [isDarkMode]);
 
   const toggleDarkMode = () => {
-    setIsDarkMode(prevMode => {
+    setIsDarkMode((prevMode) => {
       const newMode = !prevMode;
-      localStorage.setItem('darkMode', String(newMode));
+      localStorage.setItem("darkMode", String(newMode));
       return newMode;
     });
   };
-
+  const contextValue = useMemo(
+    () => ({
+      isDarkMode,
+      toggleDarkMode,
+    }),
+    [isDarkMode]
+  );
   return (
-    <DarkModeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
+    <DarkModeContext.Provider value={contextValue}>
       {children}
     </DarkModeContext.Provider>
   );
