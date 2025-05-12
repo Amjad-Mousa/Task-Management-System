@@ -70,7 +70,7 @@ app.use(cookieParser());
  */
 mongoose
   .connect(process.env.MONGODB_URI)
-  .then(() => console.log("✅ Connected to MongoDB"))
+  .then(() => console.log("Connected to MongoDB"))
   .catch(console.error);
 
 /**
@@ -155,7 +155,5 @@ app.get("/", (_req, res) => {
  * @listens {number} process.env.PORT - Port number from environment variables
  */
 app.listen(process.env.PORT, () => {
-  console.log(
-    `🚀 GraphQL server running at http://localhost:${process.env.PORT}`
-  );
+  console.log(`GraphQL server running at http://localhost:${process.env.PORT}`);
 });
