@@ -46,7 +46,7 @@ const AdminTasks = () => {
   const [successMessage, setSuccessMessage] = useState(null);
 
   // Format date for display, handling various date formats including timestamps
-  const formatDate = (dateValue) => {
+  const formatDate = useCallback((dateValue) => {
     if (!dateValue) return "Not set";
 
     try {
@@ -76,7 +76,7 @@ const AdminTasks = () => {
       console.error("Error formatting date:", err);
       return "Invalid date";
     }
-  };
+  }, []);
 
   // Reference for the virtualized list
   const listRef = useRef(null);
@@ -102,21 +102,31 @@ const AdminTasks = () => {
     document.title = "Tasks Management | Task Manager";
   }, []);
 
-  // Fetch tasks from API with caching
+  // Fetch tasks from API with enhanced caching
   const fetchTasks = useCallback(
     async (forceRefresh = false) => {
       try {
         setLoading(true);
+
+        // Use a shorter cache expiration for tasks (2 minutes)
+        const TASKS_CACHE_EXPIRATION = 2 * 60 * 1000;
+
         const data = await executeQuery(
           GET_TASKS_QUERY,
           {},
           true,
-          !forceRefresh // Use cache unless force refresh is requested
+          !forceRefresh, // Use cache unless force refresh is requested
+          TASKS_CACHE_EXPIRATION // Custom cache expiration time
         );
 
         // Set tasks from the GraphQL response
         if (data && data.tasks) {
           setTasks(data.tasks);
+          console.log(
+            `Loaded ${data.tasks.length} tasks ${
+              forceRefresh ? "from server" : "with cache"
+            }`
+          );
         } else {
           console.warn("No tasks found in response");
           setTasks([]);
@@ -132,15 +142,19 @@ const AdminTasks = () => {
     [executeQuery]
   );
 
-  // Fetch projects from API with caching
+  // Fetch projects from API with enhanced caching
   const fetchProjects = useCallback(
     async (forceRefresh = false) => {
       try {
+        // Use a longer cache expiration for projects (10 minutes)
+        const PROJECTS_CACHE_EXPIRATION = 10 * 60 * 1000;
+
         const data = await executeQuery(
           GET_PROJECTS_QUERY,
           {},
           true,
-          !forceRefresh // Use cache unless force refresh is requested
+          !forceRefresh, // Use cache unless force refresh is requested
+          PROJECTS_CACHE_EXPIRATION // Custom cache expiration time
         );
 
         // Set projects from the GraphQL response
@@ -151,6 +165,11 @@ const AdminTasks = () => {
             projectMap[project.id] = project;
           });
           setProjectsMap(projectMap);
+          console.log(
+            `Loaded ${data.projects.length} projects ${
+              forceRefresh ? "from server" : "with cache"
+            }`
+          );
         } else {
           console.warn("No projects found in response");
           setProjectsMap({});

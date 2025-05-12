@@ -2,17 +2,29 @@ import { useEffect, useState, useContext, useRef, useCallback } from "react";
 import { DashboardLayout } from "../layout";
 import { Card, Select, StatusBadge, Modal } from "../ui";
 import { DarkModeContext } from "../../Context/DarkModeContext";
+import { useGraphQL } from "../../Context/GraphQLContext";
 import StatusUpdateModal from "./StatusUpdateModal";
 import { FixedSizeList as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
-import { getSearchInputClasses } from "../../utils/adminUtils";
+import {
+  getSearchInputClasses,
+  SUCCESS_MESSAGE_TIMEOUT,
+} from "../../utils/adminUtils";
+import { GET_TASKS_QUERY, UPDATE_TASK_MUTATION } from "../../graphql/queries";
 
 /**
  * StudentTask component for student task management
  */
 const StudentTask = () => {
   const { isDarkMode } = useContext(DarkModeContext);
+  const {
+    executeQuery,
+    loading: graphqlLoading,
+    error: graphqlError,
+  } = useGraphQL();
   const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [sortConfig, setSortConfig] = useState({
     key: "dueDate",
     direction: "asc",
@@ -21,7 +33,6 @@ const StudentTask = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
-  const SUCCESS_MESSAGE_TIMEOUT = 3000;
 
   // Reference for the virtualized list
   const listRef = useRef(null);
@@ -39,43 +50,43 @@ const StudentTask = () => {
     document.title = "Student Tasks | Task Manager";
   }, []);
 
+  // Fetch tasks from API with caching
+  const fetchTasks = useCallback(
+    async (forceRefresh = false) => {
+      try {
+        setLoading(true);
+        const data = await executeQuery(
+          GET_TASKS_QUERY,
+          {},
+          true,
+          !forceRefresh // Use cache unless force refresh is requested
+        );
+
+        // Set tasks from the GraphQL response
+        if (data && data.tasks) {
+          // Filter tasks for the current student
+          // In a real app, you would filter by the current student's ID
+          // For now, we'll just use all tasks
+          setTasks(data.tasks);
+        } else {
+          console.warn("No tasks found in response");
+          setTasks([]);
+        }
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching tasks:", err);
+        setError("Failed to load tasks. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [executeQuery]
+  );
+
+  // Fetch tasks when component mounts
   useEffect(() => {
-    const studentTasks = [
-      {
-        id: 1,
-        title: "Research Report",
-        status: "In Progress",
-        dueDate: "2025-05-10",
-        description:
-          "Complete the research report on the assigned topic. Include at least 5 academic sources and follow the APA citation format.",
-      },
-      {
-        id: 2,
-        title: "Final Presentation",
-        status: "Completed",
-        dueDate: "2025-04-20",
-        description:
-          "Prepare and deliver a 15-minute presentation on your project findings. Include visual aids and be prepared for Q&A.",
-      },
-      {
-        id: 3,
-        title: "Project Documentation",
-        status: "Pending",
-        dueDate: "2025-05-05",
-        description:
-          "Document all aspects of your project including methodology, findings, and conclusions. Submit in PDF format.",
-      },
-      {
-        id: 4,
-        title: "Literature Review",
-        status: "Not Started",
-        dueDate: "2025-05-15",
-        description:
-          "Conduct a comprehensive literature review on the research topic. Analyze at least 10 relevant academic papers.",
-      },
-    ];
-    setTasks(studentTasks);
-  }, []);
+    fetchTasks();
+  }, [fetchTasks]);
 
   const sortTasks = (key) => {
     let direction = "asc";
@@ -134,14 +145,32 @@ const StudentTask = () => {
     [tasks]
   );
 
-  const handleUpdateStatus = (taskId, newStatus) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId ? { ...task, status: newStatus } : task
-      )
-    );
-    setSuccessMessage("Task status updated successfully!");
-    setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+  const handleUpdateStatus = async (taskId, newStatus) => {
+    try {
+      // Update task status via GraphQL mutation
+      const response = await executeQuery(
+        UPDATE_TASK_MUTATION,
+        {
+          id: taskId,
+          input: { status: newStatus },
+        },
+        true,
+        false // Don't use cache for mutations
+      );
+
+      if (response && response.updateTask) {
+        // Refresh tasks from cache or server
+        await fetchTasks(true);
+
+        // Show success message
+        setSuccessMessage("Task status updated successfully!");
+        setTimeout(() => setSuccessMessage(null), SUCCESS_MESSAGE_TIMEOUT);
+      }
+    } catch (err) {
+      console.error("Error updating task status:", err);
+      setError("Failed to update task status. Please try again.");
+      setTimeout(() => setError(null), SUCCESS_MESSAGE_TIMEOUT);
+    }
   };
 
   // Virtualized row component
@@ -214,6 +243,7 @@ const StudentTask = () => {
       role="student"
       title="Your Tasks"
       successMessage={successMessage}
+      errorMessage={error}
     >
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
         <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4">
@@ -299,43 +329,62 @@ const StudentTask = () => {
           ))}
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div
+            className={`px-6 py-8 text-center ${
+              isDarkMode ? "text-gray-400" : "text-gray-500"
+            }`}
+          >
+            Loading tasks...
+          </div>
+        )}
+
+        {/* Error State */}
+        {!loading && error && !successMessage && (
+          <div className={`px-6 py-8 text-center text-red-500`}>{error}</div>
+        )}
+
         {/* Virtualized Table Body */}
-        <div style={{ height: "calc(100vh - 280px)" }}>
-          {(() => {
-            const sortedTasks = getSortedTasks();
+        {!loading && !error && (
+          <div style={{ height: "calc(100vh - 280px)" }}>
+            {(() => {
+              const sortedTasks = getSortedTasks();
 
-            if (sortedTasks.length === 0) {
-              return (
-                <div
-                  className={`px-6 py-8 text-center text-sm ${
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-                >
-                  {searchQuery.trim()
-                    ? `No tasks found matching "${searchQuery}"`
-                    : "No tasks available."}
-                </div>
-              );
-            }
-
-            return (
-              <AutoSizer>
-                {({ height, width }) => (
-                  <List
-                    ref={listRef}
-                    height={height}
-                    width={width}
-                    itemCount={sortedTasks.length}
-                    itemSize={64} // Height of each row
-                    overscanCount={5} // Number of items to render outside of the visible area
+              if (sortedTasks.length === 0) {
+                return (
+                  <div
+                    className={`px-6 py-8 text-center text-sm ${
+                      isDarkMode ? "text-gray-400" : "text-gray-500"
+                    }`}
                   >
-                    {Row}
-                  </List>
-                )}
-              </AutoSizer>
-            );
-          })()}
-        </div>
+                    {searchQuery.trim()
+                      ? `No tasks found matching "${searchQuery}"`
+                      : "No tasks available."}
+                  </div>
+                );
+              }
+
+              return (
+                <AutoSizer>
+                  {({ height, width }) => (
+                    <List
+                      key={`task-list-${sortedTasks.length}`} // Force re-render when tasks change
+                      ref={listRef}
+                      height={height}
+                      width={width}
+                      itemCount={sortedTasks.length}
+                      itemSize={64} // Height of each row
+                      overscanCount={5} // Number of items to render outside of the visible area
+                    >
+                      {Row}
+                    </List>
+                  )}
+                </AutoSizer>
+              );
+            })()}
+          </div>
+        )}
       </div>
 
       {/* Status Update Modal */}
