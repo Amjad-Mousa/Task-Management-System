@@ -1,8 +1,16 @@
-import { useEffect, useState, useContext, useRef, useCallback } from "react";
+import {
+  useEffect,
+  useState,
+  useContext,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { DashboardLayout } from "../layout";
-import { Card, Select, StatusBadge, Modal } from "../ui";
+import { StatusBadge } from "../ui";
 import { DarkModeContext } from "../../Context/DarkModeContext";
 import { useGraphQL } from "../../Context/GraphQLContext";
+import { useAuth } from "../../hooks";
 import StatusUpdateModal from "./StatusUpdateModal";
 import { FixedSizeList as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -14,15 +22,46 @@ import {
 import { GET_TASKS_QUERY, UPDATE_TASK_MUTATION } from "../../graphql/queries";
 
 /**
+ * Parse and validate a date value of any type
+ * @param {any} dateValue - The date value to parse
+ * @returns {Date|null} - A valid Date object or null if invalid
+ */
+const parseDate = (dateValue) => {
+  if (!dateValue) return null;
+
+  try {
+    let dateObj;
+
+    // Handle different date formats
+    if (typeof dateValue === "string") {
+      // Check if it's a timestamp in string form
+      if (/^\d+$/.test(dateValue)) {
+        dateObj = new Date(parseInt(dateValue, 10));
+      } else {
+        dateObj = new Date(dateValue);
+      }
+    } else if (typeof dateValue === "number") {
+      dateObj = new Date(dateValue);
+    } else if (dateValue instanceof Date) {
+      dateObj = dateValue;
+    } else {
+      return null;
+    }
+
+    // Check if date is valid
+    return isNaN(dateObj.getTime()) ? null : dateObj;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * StudentTask component for student task management
  */
 const StudentTask = () => {
   const { isDarkMode } = useContext(DarkModeContext);
-  const {
-    executeQuery,
-    loading: graphqlLoading,
-    error: graphqlError,
-  } = useGraphQL();
+  const { executeQuery } = useGraphQL();
+  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,55 +78,83 @@ const StudentTask = () => {
   const listRef = useRef(null);
 
   // Column definitions for the table
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const columns = [
-    { display: "Task", key: "title", width: "25%", align: "left" },
-    { display: "Description", key: "description", width: "40%", align: "left" },
-    { display: "Status", key: "status", width: "15%", align: "left" },
-    { display: "Due Date", key: "dueDate", width: "20%", align: "left" },
-  ];
+  const columns = useMemo(
+    () => [
+      { display: "Task", key: "title", width: "25%", align: "left" },
+      {
+        display: "Description",
+        key: "description",
+        width: "40%",
+        align: "left",
+      },
+      { display: "Status", key: "status", width: "15%", align: "left" },
+      { display: "Due Date", key: "dueDate", width: "20%", align: "left" },
+    ],
+    []
+  );
 
   useEffect(() => {
     document.title = "Student Tasks | Task Manager";
   }, []);
 
-  // Fetch tasks from API with caching
-  const fetchTasks = useCallback(
-    async (forceRefresh = false) => {
-      try {
-        setLoading(true);
-        const data = await executeQuery(
-          GET_TASKS_QUERY,
-          {},
-          true,
-          !forceRefresh // Use cache unless force refresh is requested
+  // Fetch tasks from API with optimized caching
+  const fetchTasks = useCallback(async () => {
+    if (!user || !user.id) {
+      console.warn("No user ID available, cannot fetch tasks");
+      setTasks([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Use a longer cache expiration (5 minutes) for better performance
+      const data = await executeQuery(
+        GET_TASKS_QUERY,
+        {},
+        true,
+        true, // Always use cache when available
+        5 * 60 * 1000 // 5 minutes cache
+      );
+
+      // Set tasks from the GraphQL response
+      if (data && data.tasks) {
+        // Filter tasks for the current student
+        const studentTasks = data.tasks.filter(
+          (task) =>
+            task.assignedStudent && task.assignedStudent.user_id === user.id
         );
 
-        // Set tasks from the GraphQL response
-        if (data && data.tasks) {
-          // Filter tasks for the current student
-          // In a real app, you would filter by the current student's ID
-          // For now, we'll just use all tasks
-          setTasks(data.tasks);
-        } else {
-          console.warn("No tasks found in response");
-          setTasks([]);
-        }
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching tasks:", err);
-        setError("Failed to load tasks. Please try again later.");
-      } finally {
-        setLoading(false);
+        // Process tasks to ensure dates are properly formatted
+        const processedTasks = studentTasks.map((task) => ({
+          ...task,
+          dueDate: parseDate(task.dueDate),
+        }));
+
+        setTasks(processedTasks);
+      } else {
+        console.warn("No tasks found in response");
+        setTasks([]);
       }
-    },
-    [executeQuery]
-  );
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching tasks:", err);
+      setError("Failed to load tasks. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  }, [executeQuery, user]);
 
   // Fetch tasks when component mounts
+  // Using a ref to prevent infinite loops
+  const initialFetchDone = useRef(false);
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    if (user && user.id && !initialFetchDone.current) {
+      fetchTasks();
+      initialFetchDone.current = true;
+    }
+  }, [fetchTasks, user]);
 
   const sortTasks = (key) => {
     let direction = "asc";
@@ -97,7 +164,7 @@ const StudentTask = () => {
     setSortConfig({ key, direction });
   };
 
-  const getSortedTasks = useCallback(() => {
+  const getSortedTasks = useMemo(() => {
     // First filter tasks based on search query
     const filteredTasks = tasks.filter((task) => {
       if (!searchQuery.trim()) return true;
@@ -114,9 +181,15 @@ const StudentTask = () => {
     const { key, direction } = sortConfig;
     const sortedTasks = [...filteredTasks].sort((a, b) => {
       if (key === "dueDate") {
+        // Handle missing dates
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return direction === "asc" ? 1 : -1;
+        if (!b.dueDate) return direction === "asc" ? -1 : 1;
+
+        // Compare dates
         return direction === "asc"
-          ? new Date(a.dueDate) - new Date(b.dueDate)
-          : new Date(b.dueDate) - new Date(a.dueDate);
+          ? a.dueDate - b.dueDate
+          : b.dueDate - a.dueDate;
       } else if (key === "status") {
         const statusOrder = [
           "Not Started",
@@ -128,6 +201,8 @@ const StudentTask = () => {
           ? statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status)
           : statusOrder.indexOf(b.status) - statusOrder.indexOf(a.status);
       } else if (key === "title") {
+        if (!a.title) return direction === "asc" ? -1 : 1;
+        if (!b.title) return direction === "asc" ? 1 : -1;
         return direction === "asc"
           ? a.title.localeCompare(b.title)
           : b.title.localeCompare(a.title);
@@ -148,20 +223,42 @@ const StudentTask = () => {
 
   const handleUpdateStatus = async (taskId, newStatus) => {
     try {
+      // Close the modal first to prevent UI issues
+      setIsStatusModalOpen(false);
+
+      // Find the current task to preserve all its properties
+      const currentTask = tasks.find((task) => task.id === taskId);
+      if (!currentTask) {
+        throw new Error("Task not found");
+      }
+
       // Update task status via GraphQL mutation
+      // Include all required fields to avoid validation errors
       const response = await executeQuery(
         UPDATE_TASK_MUTATION,
         {
           id: taskId,
-          input: { status: newStatus },
+          input: {
+            title: currentTask.title,
+            description: currentTask.description,
+            status: newStatus,
+            dueDate:
+              currentTask.dueDate instanceof Date
+                ? currentTask.dueDate.toISOString()
+                : currentTask.dueDate,
+          },
         },
         true,
         false // Don't use cache for mutations
       );
 
       if (response && response.updateTask) {
-        // Refresh tasks from cache or server
-        await fetchTasks(true);
+        // Update the task in the local state instead of refetching
+        setTasks((prevTasks) =>
+          prevTasks.map((task) =>
+            task.id === taskId ? { ...task, status: newStatus } : task
+          )
+        );
 
         // Show success message
         setSuccessMessage("Task status updated successfully!");
@@ -177,8 +274,7 @@ const StudentTask = () => {
   // Virtualized row component
   const Row = useCallback(
     ({ index, style }) => {
-      const sortedTasks = getSortedTasks();
-      const task = sortedTasks[index];
+      const task = getSortedTasks[index];
 
       return (
         <div
@@ -215,9 +311,9 @@ const StudentTask = () => {
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
           >
-            {task.description.length > 50
+            {task.description && task.description.length > 50
               ? `${task.description.substring(0, 50)}...`
-              : task.description}
+              : task.description || "No description"}
           </div>
           <div
             style={{ width: columns[2].width }}
@@ -231,12 +327,12 @@ const StudentTask = () => {
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
           >
-            {formatDate(task.dueDate)}
+            {task.dueDate ? formatDate(task.dueDate) : "Not set"}
           </div>
         </div>
       );
     },
-    [isDarkMode, getSortedTasks, columns, handleTaskClick, formatDate]
+    [isDarkMode, getSortedTasks, columns, handleTaskClick]
   );
 
   return (
@@ -349,41 +445,33 @@ const StudentTask = () => {
         {/* Virtualized Table Body */}
         {!loading && !error && (
           <div style={{ height: "calc(100vh - 280px)" }}>
-            {(() => {
-              const sortedTasks = getSortedTasks();
-
-              if (sortedTasks.length === 0) {
-                return (
-                  <div
-                    className={`px-6 py-8 text-center text-sm ${
-                      isDarkMode ? "text-gray-400" : "text-gray-500"
-                    }`}
+            {getSortedTasks.length === 0 ? (
+              <div
+                className={`px-6 py-8 text-center text-sm ${
+                  isDarkMode ? "text-gray-400" : "text-gray-500"
+                }`}
+              >
+                {searchQuery.trim()
+                  ? `No tasks found matching "${searchQuery}"`
+                  : "No tasks available."}
+              </div>
+            ) : (
+              <AutoSizer>
+                {({ height, width }) => (
+                  <List
+                    key={`task-list-${getSortedTasks.length}`} // Force re-render when tasks change
+                    ref={listRef}
+                    height={height}
+                    width={width}
+                    itemCount={getSortedTasks.length}
+                    itemSize={64} // Height of each row
+                    overscanCount={5} // Number of items to render outside of the visible area
                   >
-                    {searchQuery.trim()
-                      ? `No tasks found matching "${searchQuery}"`
-                      : "No tasks available."}
-                  </div>
-                );
-              }
-
-              return (
-                <AutoSizer>
-                  {({ height, width }) => (
-                    <List
-                      key={`task-list-${sortedTasks.length}`} // Force re-render when tasks change
-                      ref={listRef}
-                      height={height}
-                      width={width}
-                      itemCount={sortedTasks.length}
-                      itemSize={64} // Height of each row
-                      overscanCount={5} // Number of items to render outside of the visible area
-                    >
-                      {Row}
-                    </List>
-                  )}
-                </AutoSizer>
-              );
-            })()}
+                    {Row}
+                  </List>
+                )}
+              </AutoSizer>
+            )}
           </div>
         )}
       </div>
