@@ -1,3 +1,10 @@
+/**
+ * Student Schema
+ *
+ * Defines GraphQL types, queries, and mutations for student operations.
+ *
+ * @module graphql/schema/studentSchema
+ */
 const {
   GraphQLObjectType,
   GraphQLString,
@@ -9,7 +16,11 @@ const {
 const { UserType } = require("./userSchema");
 const studentResolvers = require("../resolver/studentResolver");
 
-// Student Type
+/**
+ * GraphQL Student Type
+ * Represents a student user in the system
+ * @type {GraphQLObjectType}
+ */
 const StudentType = new GraphQLObjectType({
   name: "Student",
   fields: () => ({
@@ -40,7 +51,10 @@ const StudentType = new GraphQLObjectType({
   }),
 });
 
-// Input type for creating a new student
+/**
+ * GraphQL Input Type for creating a new student
+ * @type {GraphQLInputObjectType}
+ */
 const CreateStudentInput = new GraphQLInputObjectType({
   name: "CreateStudentInput",
   fields: () => ({
@@ -63,7 +77,10 @@ const CreateStudentInput = new GraphQLInputObjectType({
   }),
 });
 
-// Input type for updating a student
+/**
+ * GraphQL Input Type for updating a student
+ * @type {GraphQLInputObjectType}
+ */
 const UpdateStudentInput = new GraphQLInputObjectType({
   name: "UpdateStudentInput",
   fields: () => ({
@@ -82,14 +99,16 @@ const UpdateStudentInput = new GraphQLInputObjectType({
   }),
 });
 
-// Student Query Fields
+/**
+ * GraphQL Query Fields for student operations
+ * @type {Object}
+ */
 const studentQueryFields = {
   students: {
     type: new GraphQLList(StudentType),
     description: "Get all students",
     resolve: studentResolvers.students,
   },
-  // Add getAllStudents alias for frontend compatibility
   getAllStudents: {
     type: new GraphQLList(StudentType),
     description: "Get all students (alias for students query)",
@@ -119,7 +138,10 @@ const studentQueryFields = {
   },
 };
 
-// Student Mutation Fields
+/**
+ * GraphQL Mutation Fields for student operations
+ * @type {Object}
+ */
 const studentMutationFields = {
   createStudent: {
     type: StudentType,
@@ -160,7 +182,10 @@ const studentMutationFields = {
   },
 };
 
-// Export types and schema components
+/**
+ * Export student schema components
+ * @type {Object}
+ */
 module.exports = {
   StudentType,
   studentQueryFields,

@@ -1,3 +1,10 @@
+/**
+ * Project Schema
+ *
+ * Defines GraphQL types, queries, and mutations for project operations.
+ *
+ * @module graphql/schema/projectSchema
+ */
 const {
   GraphQLObjectType,
   GraphQLString,
@@ -9,11 +16,13 @@ const {
 } = require("graphql");
 const { AdminType } = require("./adminSchema");
 const { StudentType } = require("./studentSchema");
-// Remove direct import to avoid circular dependency
-// const { TaskType } = require("./taskSchema");
 const projectResolvers = require("../resolver/projectResolver");
 
-// Project Type
+/**
+ * GraphQL Project Type
+ * Represents a project in the system
+ * @type {GraphQLObjectType}
+ */
 const ProjectType = new GraphQLObjectType({
   name: "Project",
   fields: () => ({
@@ -57,7 +66,6 @@ const ProjectType = new GraphQLObjectType({
       description: "Progress of the project",
     },
     tasks: {
-      // Use a thunk function to avoid circular dependency
       type: new GraphQLList(GraphQLID),
       description: "Task IDs related to the project",
       resolve: projectResolvers.getProjectTasks,
@@ -66,7 +74,11 @@ const ProjectType = new GraphQLObjectType({
     updatedAt: { type: GraphQLString },
   }),
 });
-// Input type for creating a project
+
+/**
+ * GraphQL Input Type for creating a new project
+ * @type {GraphQLInputObjectType}
+ */
 const CreateProjectInput = new GraphQLInputObjectType({
   name: "CreateProjectInput",
   fields: () => ({
@@ -110,7 +122,10 @@ const CreateProjectInput = new GraphQLInputObjectType({
   }),
 });
 
-// Input type for updating a project
+/**
+ * GraphQL Input Type for updating a project
+ * @type {GraphQLInputObjectType}
+ */
 const UpdateProjectInput = new GraphQLInputObjectType({
   name: "UpdateProjectInput",
   fields: () => ({
@@ -150,11 +165,13 @@ const UpdateProjectInput = new GraphQLInputObjectType({
       type: GraphQLInt,
       description: "Progress of the project",
     },
-    // Note: createdAt and updatedAt are managed by the server and not included in the input type
   }),
 });
 
-// Project Query Fields
+/**
+ * GraphQL Query Fields for project operations
+ * @type {Object}
+ */
 const projectQueryFields = {
   project: {
     type: ProjectType,
@@ -196,7 +213,10 @@ const projectQueryFields = {
   },
 };
 
-// Project Mutation Fields
+/**
+ * GraphQL Mutation Fields for project operations
+ * @type {Object}
+ */
 const projectMutationFields = {
   createProject: {
     type: ProjectType,
@@ -236,6 +256,11 @@ const projectMutationFields = {
     resolve: projectResolvers.deleteProject,
   },
 };
+
+/**
+ * Export project schema components
+ * @type {Object}
+ */
 module.exports = {
   ProjectType,
   projectQueryFields,

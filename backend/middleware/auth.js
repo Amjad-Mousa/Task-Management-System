@@ -1,11 +1,18 @@
 /**
+ * Authentication Middleware
+ *
+ * Provides functions for session cookie verification, creation, and management.
+ *
+ * @module middleware/auth
+ */
+
+/**
  * Check if user is authenticated by verifying session cookie
  * @param {Object} context - GraphQL context containing request object
  * @returns {Object} User session data
  * @throws {Error} If user is not authenticated
  */
 const checkAuth = (context) => {
-  // Get user session from cookies
   const userSession = context.req.cookies.session;
 
   if (!userSession) {
@@ -13,7 +20,6 @@ const checkAuth = (context) => {
   }
 
   try {
-    // Parse the session data
     const sessionData = JSON.parse(userSession);
     return sessionData;
     // eslint-disable-next-line no-unused-vars
@@ -29,14 +35,12 @@ const checkAuth = (context) => {
  * @param {Number} maxAge - Cookie max age in milliseconds
  */
 const setSessionCookie = (res, userData, maxAge = 24 * 60 * 60 * 1000) => {
-  // Create a session object with user data
   const sessionData = {
     userId: userData._id || userData.id,
     role: userData.role,
     name: userData.name,
   };
 
-  // Set the session cookie
   res.cookie("session", JSON.stringify(sessionData), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -58,6 +62,10 @@ const clearSessionCookie = (res) => {
   });
 };
 
+/**
+ * Export authentication middleware functions
+ * @type {Object}
+ */
 module.exports = {
   checkAuth,
   setSessionCookie,

@@ -1,3 +1,10 @@
+/**
+ * Admin Schema
+ *
+ * Defines GraphQL types, queries, and mutations for admin operations.
+ *
+ * @module graphql/schema/adminSchema
+ */
 const {
   GraphQLObjectType,
   GraphQLString,
@@ -9,7 +16,11 @@ const {
 const { UserType } = require("./userSchema");
 const adminResolvers = require("../resolver/adminResolver");
 
-// Admin Type
+/**
+ * GraphQL Admin Type
+ * Represents an admin user in the system
+ * @type {GraphQLObjectType}
+ */
 const AdminType = new GraphQLObjectType({
   name: "Admin",
   fields: () => ({
@@ -32,7 +43,10 @@ const AdminType = new GraphQLObjectType({
   }),
 });
 
-// Input type for creating a new admin
+/**
+ * GraphQL Input Type for creating a new admin
+ * @type {GraphQLInputObjectType}
+ */
 const CreateAdminInput = new GraphQLInputObjectType({
   name: "CreateAdminInput",
   fields: () => ({
@@ -47,7 +61,10 @@ const CreateAdminInput = new GraphQLInputObjectType({
   }),
 });
 
-// Input type for updating an admin
+/**
+ * GraphQL Input Type for updating an admin
+ * @type {GraphQLInputObjectType}
+ */
 const UpdateAdminInput = new GraphQLInputObjectType({
   name: "UpdateAdminInput",
   fields: () => ({
@@ -58,7 +75,10 @@ const UpdateAdminInput = new GraphQLInputObjectType({
   }),
 });
 
-// Admin Query Fields
+/**
+ * GraphQL Query Fields for admin operations
+ * @type {Object}
+ */
 const adminQueryFields = {
   admins: {
     type: new GraphQLList(AdminType),
@@ -89,7 +109,10 @@ const adminQueryFields = {
   },
 };
 
-// Admin Mutation Fields
+/**
+ * GraphQL Mutation Fields for admin operations
+ * @type {Object}
+ */
 const adminMutationFields = {
   createAdmin: {
     type: AdminType,
@@ -130,7 +153,10 @@ const adminMutationFields = {
   },
 };
 
-// Export types and schema components
+/**
+ * Export admin schema components
+ * @type {Object}
+ */
 module.exports = {
   AdminType,
   adminQueryFields,

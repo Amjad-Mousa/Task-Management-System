@@ -1,3 +1,10 @@
+/**
+ * User Schema
+ *
+ * Defines GraphQL types, queries, and mutations for user operations.
+ *
+ * @module graphql/schema/userSchema
+ */
 const {
   GraphQLObjectType,
   GraphQLString,
@@ -8,7 +15,11 @@ const {
 } = require("graphql");
 const userResolvers = require("../resolver/userResolver.js");
 
-// User Type
+/**
+ * GraphQL User Type
+ * Represents a user in the system
+ * @type {GraphQLObjectType}
+ */
 const UserType = new GraphQLObjectType({
   name: "User",
   fields: () => ({
@@ -39,7 +50,10 @@ const UserType = new GraphQLObjectType({
   }),
 });
 
-// Input type for creating a new user
+/**
+ * GraphQL Input Type for creating a new user
+ * @type {GraphQLInputObjectType}
+ */
 const CreateUserInput = new GraphQLInputObjectType({
   name: "CreateUserInput",
   fields: () => ({
@@ -62,7 +76,10 @@ const CreateUserInput = new GraphQLInputObjectType({
   }),
 });
 
-// Input type for updating a user
+/**
+ * GraphQL Input Type for updating a user
+ * @type {GraphQLInputObjectType}
+ */
 const UpdateUserInput = new GraphQLInputObjectType({
   name: "UpdateUserInput",
   fields: () => ({
@@ -85,7 +102,10 @@ const UpdateUserInput = new GraphQLInputObjectType({
   }),
 });
 
-// User Query Fields
+/**
+ * GraphQL Query Fields for user operations
+ * @type {Object}
+ */
 const userQueryFields = {
   users: {
     type: new GraphQLList(UserType),
@@ -105,7 +125,10 @@ const userQueryFields = {
   },
 };
 
-// User Mutation Fields
+/**
+ * GraphQL Mutation Fields for user operations
+ * @type {Object}
+ */
 const userMutationFields = {
   createUser: {
     type: UserType,
@@ -146,7 +169,10 @@ const userMutationFields = {
   },
 };
 
-// Export types and schema components
+/**
+ * Export user schema components
+ * @type {Object}
+ */
 module.exports = {
   UserType,
   userQueryFields,

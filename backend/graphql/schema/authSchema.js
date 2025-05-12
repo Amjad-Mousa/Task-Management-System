@@ -1,3 +1,10 @@
+/**
+ * Authentication Schema
+ *
+ * Defines GraphQL types, queries, and mutations for authentication operations.
+ *
+ * @module graphql/schema/authSchema
+ */
 const {
   GraphQLObjectType,
   GraphQLString,
@@ -8,7 +15,11 @@ const {
 const { UserType } = require("./userSchema");
 const authResolvers = require("../resolver/authResolver");
 
-// Auth Response Type
+/**
+ * GraphQL Authentication Response Type
+ * Represents the response from authentication operations
+ * @type {GraphQLObjectType}
+ */
 const AuthResponseType = new GraphQLObjectType({
   name: "AuthResponse",
   fields: () => ({
@@ -27,7 +38,10 @@ const AuthResponseType = new GraphQLObjectType({
   }),
 });
 
-// Login Input Type
+/**
+ * GraphQL Input Type for login operations
+ * @type {GraphQLInputObjectType}
+ */
 const LoginInput = new GraphQLInputObjectType({
   name: "LoginInput",
   fields: () => ({
@@ -46,7 +60,10 @@ const LoginInput = new GraphQLInputObjectType({
   }),
 });
 
-// Auth Query Fields
+/**
+ * GraphQL Query Fields for authentication operations
+ * @type {Object}
+ */
 const authQueryFields = {
   me: {
     type: UserType,
@@ -55,7 +72,10 @@ const authQueryFields = {
   },
 };
 
-// Auth Mutation Fields
+/**
+ * GraphQL Mutation Fields for authentication operations
+ * @type {Object}
+ */
 const authMutationFields = {
   login: {
     type: AuthResponseType,
@@ -72,7 +92,10 @@ const authMutationFields = {
   },
 };
 
-// Export types and schema components
+/**
+ * Export authentication schema components
+ * @type {Object}
+ */
 module.exports = {
   AuthResponseType,
   LoginInput,

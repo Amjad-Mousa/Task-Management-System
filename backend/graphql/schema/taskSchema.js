@@ -1,3 +1,10 @@
+/**
+ * Task Schema
+ *
+ * Defines GraphQL types, queries, and mutations for task operations.
+ *
+ * @module graphql/schema/taskSchema
+ */
 const {
   GraphQLObjectType,
   GraphQLString,
@@ -9,11 +16,13 @@ const {
 } = require("graphql");
 const { AdminType } = require("./adminSchema");
 const { StudentType } = require("./studentSchema");
-// Remove direct import to avoid circular dependency
-// const { ProjectType } = require("./projectSchema");
 const taskResolvers = require("../resolver/taskResolver");
 
-// Task Type
+/**
+ * GraphQL Task Type
+ * Represents a task in the system
+ * @type {GraphQLObjectType}
+ */
 const TaskType = new GraphQLObjectType({
   name: "Task",
   fields: () => ({
@@ -45,7 +54,6 @@ const TaskType = new GraphQLObjectType({
       resolve: taskResolvers.getTaskAssignedStudent,
     },
     assignedProject: {
-      // Use GraphQLID instead of ProjectType to avoid circular dependency
       type: GraphQLID,
       description: "Project ID assigned to the task",
       resolve: taskResolvers.getTaskAssignedProject,
@@ -60,7 +68,10 @@ const TaskType = new GraphQLObjectType({
   }),
 });
 
-// Input type for creating a new task
+/**
+ * GraphQL Input Type for creating a new task
+ * @type {GraphQLInputObjectType}
+ */
 const CreateTaskInput = new GraphQLInputObjectType({
   name: "CreateTaskInput",
   fields: () => ({
@@ -99,7 +110,10 @@ const CreateTaskInput = new GraphQLInputObjectType({
   }),
 });
 
-// Input type for updating a task
+/**
+ * GraphQL Input Type for updating a task
+ * @type {GraphQLInputObjectType}
+ */
 const UpdateTaskInput = new GraphQLInputObjectType({
   name: "UpdateTaskInput",
   fields: () => ({
@@ -134,7 +148,10 @@ const UpdateTaskInput = new GraphQLInputObjectType({
   }),
 });
 
-// Task Query Fields
+/**
+ * GraphQL Query Fields for task operations
+ * @type {Object}
+ */
 const taskQueryFields = {
   task: {
     type: TaskType,
@@ -177,7 +194,10 @@ const taskQueryFields = {
   },
 };
 
-// Task Mutation Fields
+/**
+ * GraphQL Mutation Fields for task operations
+ * @type {Object}
+ */
 const taskMutationFields = {
   createTask: {
     type: TaskType,
@@ -218,6 +238,10 @@ const taskMutationFields = {
   },
 };
 
+/**
+ * Export task schema components
+ * @type {Object}
+ */
 module.exports = {
   TaskType,
   taskQueryFields,
