@@ -9,6 +9,7 @@ import AutoSizer from "react-virtualized-auto-sizer";
 import {
   getSearchInputClasses,
   SUCCESS_MESSAGE_TIMEOUT,
+  formatDate,
 } from "../../utils/adminUtils";
 import { GET_TASKS_QUERY, UPDATE_TASK_MUTATION } from "../../graphql/queries";
 
@@ -230,12 +231,12 @@ const StudentTask = () => {
               isDarkMode ? "text-gray-300" : "text-gray-700"
             }`}
           >
-            {new Date(task.dueDate).toLocaleDateString()}
+            {formatDate(task.dueDate)}
           </div>
         </div>
       );
     },
-    [isDarkMode, getSortedTasks, columns, handleTaskClick]
+    [isDarkMode, getSortedTasks, columns, handleTaskClick, formatDate]
   );
 
   return (

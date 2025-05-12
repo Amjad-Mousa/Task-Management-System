@@ -4,6 +4,7 @@ import { Card, StatusBadge } from "../ui";
 import { StatCard } from "../shared";
 import { DarkModeContext } from "../../Context/DarkModeContext";
 import { Link } from "react-router-dom";
+import { formatDate } from "../../utils/adminUtils";
 
 /**
  * StudentHome component for student dashboard
@@ -366,7 +367,7 @@ const TaskItem = ({ task }) => {
           >
             <span>Project: {task.project}</span>
             <span className="mx-2">•</span>
-            <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+            <span>Due: {formatDate(task.dueDate)}</span>
             {daysUntilDue >= 0 && task.status !== "Completed" && (
               <>
                 <span className="mx-2">•</span>

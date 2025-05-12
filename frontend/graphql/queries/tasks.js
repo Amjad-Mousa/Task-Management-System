@@ -122,9 +122,15 @@ export const GET_RECENT_TASKS_QUERY = `
       assignedStudent {
         id
         user_id
+        user {
+          id
+          name
+          email
+        }
       }
       assignedProject
       updatedAt
+      createdAt
     }
   }
 `;

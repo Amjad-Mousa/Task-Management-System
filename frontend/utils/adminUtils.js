@@ -127,3 +127,47 @@ export const getSearchInputClasses = (isDarkMode) =>
  * Standard success message timeout duration
  */
 export const SUCCESS_MESSAGE_TIMEOUT = 3000;
+
+/**
+ * Format date for display, handling various date formats including timestamps
+ * @param {string|number|Date} dateValue - The date value to format
+ * @returns {string} The formatted date string
+ */
+export const formatDate = (dateValue) => {
+  if (!dateValue) return "Not set";
+
+  try {
+    let dateObj;
+
+    // Handle Date object
+    if (dateValue instanceof Date) {
+      dateObj = dateValue;
+    }
+    // Handle timestamp as string
+    else if (typeof dateValue === "string" && /^\d+$/.test(dateValue)) {
+      dateObj = new Date(parseInt(dateValue, 10));
+    }
+    // Handle timestamp as number
+    else if (typeof dateValue === "number") {
+      dateObj = new Date(dateValue);
+    }
+    // Handle date string
+    else {
+      dateObj = new Date(dateValue);
+    }
+
+    // Check if date is valid
+    if (isNaN(dateObj.getTime())) {
+      return "Invalid date";
+    }
+
+    // Format date as MM/DD/YYYY to ensure consistent display
+    const month = dateObj.getMonth() + 1;
+    const day = dateObj.getDate();
+    const year = dateObj.getFullYear();
+    return `${month}/${day}/${year}`;
+  } catch (err) {
+    console.error("Error formatting date:", err);
+    return "Invalid date";
+  }
+};

@@ -17,6 +17,7 @@ import {
   sortItems,
   getSearchInputClasses,
   SUCCESS_MESSAGE_TIMEOUT,
+  formatDate,
 } from "../../utils/adminUtils";
 import {
   GET_TASKS_QUERY,
@@ -44,39 +45,6 @@ const AdminTasks = () => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-
-  // Format date for display, handling various date formats including timestamps
-  const formatDate = useCallback((dateValue) => {
-    if (!dateValue) return "Not set";
-
-    try {
-      let dateObj;
-
-      // Handle timestamp as string
-      if (typeof dateValue === "string" && /^\d+$/.test(dateValue)) {
-        dateObj = new Date(parseInt(dateValue, 10));
-      }
-      // Handle timestamp as number
-      else if (typeof dateValue === "number") {
-        dateObj = new Date(dateValue);
-      }
-      // Handle date string
-      else {
-        dateObj = new Date(dateValue);
-      }
-
-      // Check if date is valid
-      if (isNaN(dateObj.getTime())) {
-        return "Invalid date";
-      }
-
-      // Format date as locale string
-      return dateObj.toLocaleDateString();
-    } catch (err) {
-      console.error("Error formatting date:", err);
-      return "Invalid date";
-    }
-  }, []);
 
   // Reference for the virtualized list
   const listRef = useRef(null);
@@ -451,7 +419,7 @@ const AdminTasks = () => {
         </div>
       );
     },
-    [columns, getFilteredAndSortedTasks, isDarkMode, formatDate, projectsMap]
+    [columns, getFilteredAndSortedTasks, isDarkMode, projectsMap]
   );
 
   return (
