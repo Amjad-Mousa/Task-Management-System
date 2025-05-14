@@ -23,16 +23,23 @@ const adminResolvers = {
    * @param {Object} _args - Query arguments (not used)
    * @param {Object} context - GraphQL context containing request and response objects
    * @returns {Promise<Array>} List of all admin users
-   * @throws {Error} If user is not authenticated or not authorized
+   * @throws {Error} If user is not authenticated
    */
   admins: async (_, _args, context) => {
-    const decodedToken = checkAuth(context);
+    try {
+      // Check authentication but allow both students and admins to access
+      const decodedToken = checkAuth(context);
+      console.log("Authenticated user requesting admins:", decodedToken);
 
-    if (decodedToken.role !== "admin") {
-      throw new Error("Not authorized to view all admins");
+      // Both students and admins can view the list of admins for chat purposes
+      const admins = await Admin.find();
+      console.log(`Found ${admins.length} admins`);
+
+      return admins;
+    } catch (error) {
+      console.error("Error in admins resolver:", error);
+      throw error;
     }
-
-    return await Admin.find();
   },
 
   /**
@@ -103,7 +110,20 @@ const adminResolvers = {
    * @returns {Promise<Object>} User data associated with the admin
    */
   getAdminUser: async (parent) => {
-    return await User.findById(parent.user_id);
+    try {
+      console.log("Getting user for admin:", parent);
+      if (!parent || !parent.user_id) {
+        console.error("Invalid parent or missing user_id:", parent);
+        return null;
+      }
+
+      const user = await User.findById(parent.user_id);
+      console.log("Found user:", user ? user.name : "null");
+      return user;
+    } catch (error) {
+      console.error("Error in getAdminUser resolver:", error);
+      return null;
+    }
   },
 
   /**

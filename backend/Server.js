@@ -40,6 +40,10 @@ const {
   taskQueryFields,
   taskMutationFields,
 } = require("./graphql/schema/taskSchema");
+const {
+  messageQueryFields,
+  messageMutationFields,
+} = require("./graphql/schema/messageSchema");
 
 /**
  * Express application instance
@@ -87,6 +91,7 @@ const RootQuery = new GraphQLObjectType({
     ...adminQueryFields,
     ...projectQueryFields,
     ...taskQueryFields,
+    ...messageQueryFields,
   },
 });
 
@@ -104,6 +109,7 @@ const RootMutation = new GraphQLObjectType({
     ...adminMutationFields,
     ...projectMutationFields,
     ...taskMutationFields,
+    ...messageMutationFields,
   },
 });
 
