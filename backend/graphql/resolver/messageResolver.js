@@ -181,6 +181,51 @@ const markMessageAsRead = async (_, { id }, context) => {
 };
 
 /**
+ * Mark all messages from a sender as read
+ *
+ * @async
+ * @param {Object} _ - Parent resolver (not used)
+ * @param {Object} args - Mutation arguments
+ * @param {string} args.senderId - ID of the sender whose messages to mark as read
+ * @param {Object} context - GraphQL context containing request and response objects
+ * @returns {Promise<Object>} Operation result
+ * @throws {Error} If user is not authenticated or sender ID is invalid
+ */
+const markAllMessagesAsRead = async (_, { senderId }, context) => {
+  const decodedToken = checkAuth(context);
+  const userId = decodedToken.userId;
+
+  if (!mongoose.Types.ObjectId.isValid(senderId)) {
+    throw new Error("Invalid sender ID");
+  }
+
+  try {
+    // Find all unread messages from the sender to the current user
+    const result = await Message.updateMany(
+      {
+        "sender.id": senderId,
+        "receiver.id": userId,
+        read: false
+      },
+      {
+        $set: { read: true }
+      }
+    );
+
+    return {
+      success: true,
+      message: `Marked ${result.modifiedCount} messages as read`
+    };
+  } catch (error) {
+    console.error("Error marking all messages as read:", error);
+    return {
+      success: false,
+      message: `Error marking messages as read: ${error.message}`
+    };
+  }
+};
+
+/**
  * Export message resolver functions
  * @type {Object}
  */
@@ -189,5 +234,6 @@ module.exports = {
   getMessages,
   getMessagesBetweenUsers,
   createMessage,
-  markMessageAsRead
+  markMessageAsRead,
+  markAllMessagesAsRead
 };

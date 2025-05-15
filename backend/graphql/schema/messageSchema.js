@@ -114,6 +114,24 @@ const messageQueryFields = {
 };
 
 /**
+ * GraphQL Response Type for operations that return success/message
+ * @type {GraphQLObjectType}
+ */
+const OperationResponseType = new GraphQLObjectType({
+  name: "OperationResponse",
+  fields: () => ({
+    success: {
+      type: GraphQLBoolean,
+      description: "Whether the operation was successful",
+    },
+    message: {
+      type: GraphQLString,
+      description: "Message describing the result of the operation",
+    },
+  }),
+});
+
+/**
  * GraphQL Mutation Fields for message operations
  * @type {Object}
  */
@@ -140,6 +158,17 @@ const messageMutationFields = {
     },
     resolve: messageResolvers.markMessageAsRead,
   },
+  markAllMessagesAsRead: {
+    type: OperationResponseType,
+    description: "Mark all messages from a sender as read",
+    args: {
+      senderId: {
+        type: new GraphQLNonNull(GraphQLID),
+        description: "ID of the sender whose messages to mark as read",
+      },
+    },
+    resolve: messageResolvers.markAllMessagesAsRead,
+  },
 };
 
 /**
@@ -151,4 +180,5 @@ module.exports = {
   messageQueryFields,
   messageMutationFields,
   CreateMessageInput,
+  OperationResponseType,
 };

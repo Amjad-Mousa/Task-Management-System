@@ -2,7 +2,7 @@
  * Task Management System Server
  *
  * Main server file that sets up Express with GraphQL, MongoDB connection,
- * and necessary middleware for the Task Management System.
+ * Socket.IO for real-time chat, and necessary middleware for the Task Management System.
  *
  * @module server
  */
@@ -13,6 +13,8 @@ const { createHandler } = require("graphql-http/lib/use/express");
 const { GraphQLSchema, GraphQLObjectType } = require("graphql");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const http = require("http");
+const { Server } = require("socket.io");
 require("dotenv").config();
 
 // Import query and mutation fields from schema files
@@ -52,13 +54,40 @@ const {
 const app = express();
 
 /**
+ * Create HTTP server with Express app
+ * @type {http.Server}
+ */
+const server = http.createServer(app);
+
+/**
+ * Initialize Socket.IO with the HTTP server
+ * @type {SocketIO.Server}
+ */
+// Socket.IO setup with specific origin
+console.log("Setting up Socket.IO server with specific origin");
+
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:5173", "http://localhost:5174"], // Allow both ports
+    methods: ["GET", "POST", "OPTIONS"],
+    credentials: true // Enable credentials
+  },
+  transports: ['polling', 'websocket'], // Try polling first, then websocket
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  connectTimeout: 30000
+});
+
+/**
  * Configure CORS middleware to allow credentials and specify allowed origin
  * This is essential for cross-domain requests with authentication
  */
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
+    origin: ["http://localhost:5173", "http://localhost:5174"], // Allow both ports
+    credentials: true, // Enable credentials
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
@@ -157,9 +186,95 @@ app.get("/", (_req, res) => {
 });
 
 /**
- * Start the Express server on the specified port
+ * Set up Socket.IO event handlers for real-time chat
+ */
+io.on("connection", (socket) => {
+  console.log(`User connected: ${socket.id}`);
+
+  // Send a welcome message to confirm connection
+  socket.emit("welcome", { message: "Connected to chat server successfully!" });
+
+  // Handle errors
+  socket.on("error", (error) => {
+    console.error(`Socket ${socket.id} error:`, error);
+  });
+
+  // Join a chat room (based on conversation between two users)
+  socket.on("join_chat", (data) => {
+    try {
+      const { chatId } = data;
+      socket.join(chatId);
+      console.log(`User ${socket.id} joined chat: ${chatId}`);
+
+      // Confirm to the client that they joined the chat
+      socket.emit("chat_joined", { chatId, success: true });
+    } catch (error) {
+      console.error(`Error joining chat:`, error);
+      socket.emit("chat_joined", { success: false, error: error.message });
+    }
+  });
+
+  // Handle sending messages
+  socket.on("send_message", (data) => {
+    try {
+      const { chatId, message } = data;
+      console.log(`Received message for chat ${chatId}:`, message);
+
+      // Broadcast the message to all users in the chat room
+      io.to(chatId).emit("receive_message", message);
+      console.log(`Message broadcast to chat ${chatId}`);
+    } catch (error) {
+      console.error(`Error sending message:`, error);
+      socket.emit("message_error", { error: error.message });
+    }
+  });
+
+  // Handle marking messages as read
+  socket.on("mark_read", (data) => {
+    try {
+      const { senderId, receiverId } = data;
+      console.log(`Marking messages as read from ${senderId} to ${receiverId}`);
+
+      // Notify the sender that their messages have been read
+      io.emit("messages_marked_read", { senderId, receiverId });
+    } catch (error) {
+      console.error(`Error marking messages as read:`, error);
+    }
+  });
+
+  // Handle user typing status
+  socket.on("typing", (data) => {
+    try {
+      const { chatId, userId, isTyping } = data;
+      // Broadcast typing status to other users in the chat
+      socket.to(chatId).emit("user_typing", { userId, isTyping });
+    } catch (error) {
+      console.error(`Error with typing status:`, error);
+    }
+  });
+
+  // Handle ping (for testing connection)
+  socket.on("ping", (callback) => {
+    console.log(`Received ping from ${socket.id}`);
+    if (typeof callback === 'function') {
+      callback({ status: "ok", time: new Date().toISOString() });
+    } else {
+      socket.emit("pong", { status: "ok", time: new Date().toISOString() });
+    }
+  });
+
+  // Handle disconnection
+  socket.on("disconnect", (reason) => {
+    console.log(`User disconnected: ${socket.id}, reason: ${reason}`);
+  });
+});
+
+/**
+ * Start the HTTP server on the specified port
  * @listens {number} process.env.PORT - Port number from environment variables
  */
-app.listen(process.env.PORT, () => {
-  console.log(`GraphQL server running at http://localhost:${process.env.PORT}`);
+server.listen(process.env.PORT, () => {
+  console.log(`Server running at http://localhost:${process.env.PORT}`);
+  console.log(`GraphQL endpoint: http://localhost:${process.env.PORT}/graphql`);
+  console.log(`Socket.IO enabled for real-time chat`);
 });
