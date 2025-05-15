@@ -24,12 +24,17 @@ import {
 const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [messageInput, setMessageInput] = useState("");
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState(() => {
+    // Try to load messages from localStorage first
+    const storedMessages = localStorage.getItem('chatMessages');
+    return storedMessages ? JSON.parse(storedMessages) : initialMessages || {};
+  });
   const [isTyping, setIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState({});
   const [loadingMessages, setLoadingMessages] = useState(false);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const [unreadMessages, setUnreadMessages] = useState({});
 
   // Get GraphQL context for saving messages to database
   const { executeQuery } = useGraphQL();
@@ -113,29 +118,43 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
 
   // Load messages when a user is selected
   useEffect(() => {
-    if (!currentUser || !currentLoggedInUser?.id) return;
-
     const loadMessages = async () => {
       try {
         setLoadingMessages(true);
-        const response = await executeQuery(GET_MESSAGES_BETWEEN_USERS_QUERY, {
-          userId: currentUser
-        });
 
-        if (response.messagesBetweenUsers) {
-          const formattedMessages = response.messagesBetweenUsers.map(msg => ({
-            id: msg.id || `db_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-            text: msg.content,
-            sender: msg.sender.id === currentLoggedInUser.id ? "sent" : "received",
-            timestamp: msg.timestamp,
-            read: msg.read,
-            fromDatabase: true // Mark as loaded from database
-          }));
+        // First check if we have messages in state/localStorage
+        const existingMessages = messages[currentUser] || [];
 
-          setMessages(prev => ({
-            ...prev,
-            [currentUser]: formattedMessages
-          }));
+        // Only fetch from server if we don't have messages or it's been a while
+        if (existingMessages.length === 0) {
+          const response = await executeQuery(GET_MESSAGES_BETWEEN_USERS_QUERY, {
+            userId: currentUser
+          });
+
+          if (response.messagesBetweenUsers) {
+            const formattedMessages = response.messagesBetweenUsers.map(msg => ({
+              id: msg.id || `db_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+              text: msg.content,
+              sender: msg.sender.id === currentLoggedInUser.id ? "sent" : "received",
+              timestamp: msg.timestamp,
+              read: msg.read
+            }));
+
+            // Update messages state with the formatted messages
+            setMessages(prev => {
+              const updatedMessages = {
+                ...prev,
+                [currentUser]: formattedMessages
+              };
+
+              // Update localStorage immediately
+              localStorage.setItem('chatMessages', JSON.stringify(updatedMessages));
+
+              return updatedMessages;
+            });
+          }
+        } else {
+          console.log("Using cached messages for user:", currentUser);
         }
       } catch (error) {
         console.error("Error loading messages:", error);
@@ -144,22 +163,10 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
       }
     };
 
-    loadMessages();
-
-    // Mark messages as read when selecting a user
     if (currentUser && currentLoggedInUser?.id) {
-      markMessagesAsRead(currentUser, currentLoggedInUser.id);
-
-      // Also mark as read via GraphQL for redundancy
-      executeQuery(MARK_ALL_MESSAGES_AS_READ_MUTATION, {
-        senderId: currentUser
-      }).then(result => {
-        console.log("Messages marked as read via GraphQL:", result);
-      }).catch(error => {
-        console.error("Error marking messages as read via GraphQL:", error);
-      });
+      loadMessages();
     }
-  }, [currentUser, currentLoggedInUser?.id, executeQuery, markMessagesAsRead]);
+  }, [currentUser, currentLoggedInUser?.id, executeQuery, messages]);
 
   // Join the chat room when a user is selected
   useEffect(() => {
@@ -181,24 +188,27 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
     const handleReceiveMessage = (message) => {
       console.log("Received message:", message);
 
-      // Check if the message is relevant to the current user
-      const isForCurrentUser = message.senderId === currentUser || message.receiverId === currentUser;
+      // Check if the message is relevant to the logged-in user
       const isForLoggedInUser = message.senderId === currentLoggedInUser.id || message.receiverId === currentLoggedInUser.id;
 
       console.log("Message relevance:", {
-        isForCurrentUser,
         isForLoggedInUser,
         currentUser,
         currentLoggedInUserId: currentLoggedInUser.id
       });
 
-      // Only add the message if it's for the current chat
-      if (isForCurrentUser && isForLoggedInUser) {
-        console.log("Processing message for chat with:", currentUser);
+      // Process the message if it's for the logged-in user, regardless of current chat
+      if (isForLoggedInUser) {
+        // Determine which user this message is with (the other party)
+        const otherUserId = message.senderId === currentLoggedInUser.id
+          ? message.receiverId
+          : message.senderId;
+
+        console.log("Processing message for chat with user:", otherUserId);
 
         setMessages((prev) => {
           // Check if this message is already in the state (to prevent duplication)
-          const existingMessages = prev[currentUser] || [];
+          const existingMessages = prev[otherUserId] || [];
 
           // If the message has an ID, check if we already have it
           if (message.id) {
@@ -219,7 +229,7 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
           // If it's a new message, add it to the state
           const updatedMessages = {
             ...prev,
-            [currentUser]: [...existingMessages, {
+            [otherUserId]: [...existingMessages, {
               id: message.id || `socket_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
               text: message.text,
               sender: message.senderId === currentLoggedInUser.id ? "sent" : "received",
@@ -228,11 +238,15 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
           };
 
           console.log("Updated messages state:", updatedMessages);
+
+          // Save to localStorage immediately
+          localStorage.setItem('chatMessages', JSON.stringify(updatedMessages));
+
           return updatedMessages;
         });
 
-        // If this is a received message, mark it as read
-        if (message.senderId !== currentLoggedInUser.id) {
+        // If this is a received message and we're currently chatting with the sender, mark it as read
+        if (message.senderId !== currentLoggedInUser.id && message.senderId === currentUser) {
           markMessagesAsRead(message.senderId, currentLoggedInUser.id);
         }
       }
@@ -274,6 +288,14 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, currentUser]);
 
+  // Add this useEffect to save messages whenever they change
+  useEffect(() => {
+    if (Object.keys(messages).length > 0) {
+      localStorage.setItem('chatMessages', JSON.stringify(messages));
+      console.log("Saved messages to localStorage:", messages);
+    }
+  }, [messages]);
+
   // Handle sending a message
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !currentUser || !currentLoggedInUser?.id) {
@@ -281,22 +303,26 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
     }
 
     const timestamp = new Date().toISOString();
-    // Generate a unique message ID to prevent duplication
     const messageId = `local_${currentLoggedInUser.id}_${Date.now()}`;
 
-    // Add message to local state immediately for responsive UI
+    // Create the new message object
     const newMessage = {
-      id: messageId, // Add unique ID to identify this message
+      id: messageId,
       text: messageInput,
       sender: "sent",
       timestamp,
-      isLocal: true // Mark as locally added to prevent duplication
+      isLocal: true
     };
 
-    setMessages((prev) => ({
-      ...prev,
-      [currentUser]: [...(prev[currentUser] || []), newMessage],
-    }));
+    // Update messages state with the new message
+    const updatedMessages = {
+      ...messages,
+      [currentUser]: [...(messages[currentUser] || []), newMessage],
+    };
+
+    // Set the updated messages and also save to localStorage immediately
+    setMessages(updatedMessages);
+    localStorage.setItem('chatMessages', JSON.stringify(updatedMessages));
 
     // Clear input and typing status immediately for better UX
     const messageCopy = messageInput;
@@ -333,12 +359,101 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
       };
 
       // Execute GraphQL mutation to save message
-      await executeQuery(CREATE_MESSAGE_MUTATION, { input });
+      const response = await executeQuery(CREATE_MESSAGE_MUTATION, { input });
+
+      if (response && response.createMessage) {
+        // Update the message in state with the server-generated ID and timestamp
+        setMessages(prev => {
+          const currentUserMessages = prev[currentUser] || [];
+          const updatedUserMessages = currentUserMessages.map(msg =>
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  id: response.createMessage.id,
+                  timestamp: response.createMessage.timestamp
+                }
+              : msg
+          );
+
+          const updatedAllMessages = {
+            ...prev,
+            [currentUser]: updatedUserMessages
+          };
+
+          // Save updated messages to localStorage
+          localStorage.setItem('chatMessages', JSON.stringify(updatedAllMessages));
+
+          return updatedAllMessages;
+        });
+      }
     } catch (error) {
       console.error("Error saving message to database:", error);
       // Could add a visual indicator that the message failed to save
     }
   };
+
+  // We'll use the unreadMessages state instead of fetching unread counts from the server
+  useEffect(() => {
+    // No need to fetch unread counts from server, we'll use the local state
+    console.log("Using local unread message tracking");
+
+    // We could set up a periodic check for new messages here if needed
+    // but we're already handling this through the socket connection
+  }, [currentLoggedInUser?.id]);
+
+  // Add this effect to clear unread count when selecting a user
+  useEffect(() => {
+    if (currentUser && unreadMessages[currentUser]) {
+      // Clear the unread status for this user
+      setUnreadMessages(prev => ({
+        ...prev,
+        [currentUser]: false
+      }));
+
+      // Also update in database
+      executeQuery(MARK_ALL_MESSAGES_AS_READ_MUTATION, {
+        senderId: currentUser
+      }).catch(error => {
+        console.error("Error marking messages as read:", error);
+      });
+    }
+  }, [currentUser, unreadMessages, executeQuery]);
+
+  // Add this effect to listen for new messages and mark them as unread
+  useEffect(() => {
+    if (!connected || !currentLoggedInUser?.id) return;
+
+    const handleReceiveMessage = (message) => {
+      // If the message is from someone else to the current user
+      if (message.receiverId === currentLoggedInUser.id &&
+          message.senderId !== currentLoggedInUser.id) {
+
+        // If we're not currently chatting with this user, mark as unread
+        if (message.senderId !== currentUser) {
+          setUnreadMessages(prev => ({
+            ...prev,
+            [message.senderId]: true
+          }));
+        }
+      }
+    };
+
+    const unsubscribe = onReceiveMessage(handleReceiveMessage);
+
+    return () => {
+      unsubscribe();
+    };
+  }, [connected, currentUser, currentLoggedInUser?.id, onReceiveMessage]);
+
+  // Add this effect to clear unread status when selecting a user
+  useEffect(() => {
+    if (currentUser && unreadMessages[currentUser]) {
+      setUnreadMessages(prev => ({
+        ...prev,
+        [currentUser]: false
+      }));
+    }
+  }, [currentUser, unreadMessages]);
 
   return (
     <div className="flex h-[calc(100vh-160px)]">
@@ -357,18 +472,25 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
                       : "hover:bg-gray-200 dark:hover:bg-gray-700"
                   }`}
                 >
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-blue-500 dark:bg-blue-600 text-white flex items-center justify-center mr-3">
-                      {user.name.charAt(0).toUpperCase()}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 rounded-full bg-blue-500 dark:bg-blue-600 text-white flex items-center justify-center mr-3">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{user.name}</span>
+                        {user.role && (
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{user.name}</span>
-                      {user.role && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                        </span>
-                      )}
-                    </div>
+
+                    {/* Simple unread indicator */}
+                    {unreadMessages[user.id] && (
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    )}
                   </div>
                 </li>
               ))}
@@ -444,7 +566,13 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
                     <p className="break-words">{msg.text}</p>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 px-2">
-                    {new Date(msg.timestamp || Date.now()).toLocaleTimeString()}
+                    {new Date(msg.timestamp || Date.now()).toLocaleString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </p>
                 </div>
               ))}
@@ -553,9 +681,19 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
  * @returns {React.ReactElement} Rendered ChatInterface component with Socket.IO context
  */
 const ChatInterface = (props) => {
+  // Get stored messages from localStorage
+  const storedMessages = localStorage.getItem('chatMessages');
+  const initialMessages = storedMessages ? JSON.parse(storedMessages) : props.initialMessages || {};
+
+  // Merge props with stored messages
+  const mergedProps = {
+    ...props,
+    initialMessages: initialMessages
+  };
+
   return (
     <SocketProvider>
-      <ChatInterfaceInner {...props} />
+      <ChatInterfaceInner {...mergedProps} />
     </SocketProvider>
   );
 };
