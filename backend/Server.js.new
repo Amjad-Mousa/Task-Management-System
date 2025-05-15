@@ -1,0 +1,132 @@
+/**
+ * Task Management System Server
+ *
+ * Main server file that sets up Express with GraphQL, MongoDB connection,
+ * Socket.IO for real-time chat, and necessary middleware for the Task Management System.
+ *
+ * @module server
+ */
+
+const express = require("express");
+const mongoose = require("mongoose");
+const { createHandler } = require("graphql-http/lib/use/express");
+const { GraphQLSchema, GraphQLObjectType } = require("graphql");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const http = require("http");
+const { Server } = require("socket.io");
+require("dotenv").config();
+
+// Import query and mutation fields from schema files
+const {
+  userQueryFields,
+  userMutationFields,
+} = require("./graphql/schema/userSchema");
+const {
+  authQueryFields,
+  authMutationFields,
+} = require("./graphql/schema/authSchema");
+const {
+  studentQueryFields,
+  studentMutationFields,
+} = require("./graphql/schema/studentSchema");
+const {
+  adminQueryFields,
+  adminMutationFields,
+} = require("./graphql/schema/adminSchema");
+const {
+  projectQueryFields,
+  projectMutationFields,
+} = require("./graphql/schema/projectSchema");
+const {
+  taskQueryFields,
+  taskMutationFields,
+} = require("./graphql/schema/taskSchema");
+const {
+  messageQueryFields,
+  messageMutationFields,
+} = require("./graphql/schema/messageSchema");
+
+/**
+ * Express application instance
+ * @type {express.Application}
+ */
+const app = express();
+
+/**
+ * Create HTTP server with Express app
+ * @type {http.Server}
+ */
+const server = http.createServer(app);
+
+/**
+ * Initialize Socket.IO with the HTTP server
+ * @type {SocketIO.Server}
+ */
+// Socket.IO setup with specific origin
+console.log("Setting up Socket.IO server with specific origin");
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173", // Specific origin for the client
+    methods: ["GET", "POST", "OPTIONS"],
+    credentials: true // Enable credentials
+  },
+  transports: ['polling', 'websocket'], // Try polling first, then websocket
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  connectTimeout: 30000
+});
+
+/**
+ * Configure CORS middleware to allow credentials and specify allowed origin
+ * This is essential for cross-domain requests with authentication
+ */
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Specific origin for the client
+    credentials: true, // Enable credentials
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
+
+/**
+ * Add cookie-parser middleware to parse cookies in requests
+ * Required for session-based authentication
+ */
+app.use(cookieParser());
+
+/**
+ * Connect to MongoDB database using connection string from environment variables
+ * @returns {Promise} MongoDB connection promise
+ */
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
+    socketTimeoutMS: 45000, // Increase socket timeout to 45 seconds
+    connectTimeoutMS: 30000, // Increase connect timeout to 30 seconds
+  })
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(error => {
+    console.error("MongoDB connection error:", error);
+    console.error("Please make sure MongoDB is running and the connection string is correct.");
+  });
+
+/**
+ * Define GraphQL Root Query type
+ * Combines all query fields from different schema modules
+ * @type {GraphQLObjectType}
+ */
+const RootQuery = new GraphQLObjectType({
+  name: "RootQuery",
+  fields: {
+    ...userQueryFields,
+    ...authQueryFields,
+    ...studentQueryFields,
+    ...adminQueryFields,
+    ...projectQueryFields,
+    ...taskQueryFields,
+    ...messageQueryFields,
+  },
+});
