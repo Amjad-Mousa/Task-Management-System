@@ -9,6 +9,47 @@ import {
 } from "../../graphql/queries";
 
 /**
+ * Helper function to format timestamps consistently
+ * @param {string|Date} timestamp - The timestamp to format
+ * @returns {string} Formatted timestamp string
+ */
+const formatTimestamp = (timestamp) => {
+  try {
+    // Try to parse the timestamp, fallback to current time if invalid
+    const date = timestamp ? new Date(timestamp) : new Date();
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn("Invalid date detected:", timestamp);
+      return new Date().toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    return date.toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.warn("Error formatting date:", error);
+    return new Date().toLocaleString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+};
+
+/**
  * @file ChatInterface.jsx - Shared chat interface component with real-time messaging
  * @module components/shared/ChatInterface
  */
@@ -136,7 +177,7 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
               id: msg.id || `db_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
               text: msg.content,
               sender: msg.sender.id === currentLoggedInUser.id ? "sent" : "received",
-              timestamp: msg.timestamp,
+              timestamp: msg.timestamp || new Date().toISOString(),
               read: msg.read
             }));
 
@@ -233,7 +274,7 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
               id: message.id || `socket_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
               text: message.text,
               sender: message.senderId === currentLoggedInUser.id ? "sent" : "received",
-              timestamp: message.timestamp
+              timestamp: message.timestamp || new Date().toISOString()
             }],
           };
 
@@ -556,6 +597,10 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
                     msg.sender === "received" ? "items-start" : "items-end"
                   }`}
                 >
+                  {/* Display timestamp above message */}
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 px-2">
+                    {formatTimestamp(msg.timestamp)}
+                  </p>
                   <div
                     className={`max-w-[70%] p-4 rounded-2xl shadow-sm ${
                       msg.sender === "received"
@@ -565,15 +610,6 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
                   >
                     <p className="break-words">{msg.text}</p>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 px-2">
-                    {new Date(msg.timestamp || Date.now()).toLocaleString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
                 </div>
               ))}
 
