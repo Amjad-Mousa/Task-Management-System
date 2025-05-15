@@ -5,6 +5,7 @@ import { useGraphQL } from "../../Context/GraphQLContext";
 import {
   CREATE_MESSAGE_MUTATION,
   GET_MESSAGES_BETWEEN_USERS_QUERY,
+  GET_MESSAGES_QUERY,
   MARK_ALL_MESSAGES_AS_READ_MUTATION
 } from "../../graphql/queries";
 
@@ -75,7 +76,12 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const [unreadMessages, setUnreadMessages] = useState({});
+  // Track unread message counts per user
+  const [unreadMessages, setUnreadMessages] = useState(() => {
+    // Try to load unread counts from localStorage
+    const storedUnreadCounts = localStorage.getItem('chatUnreadCounts');
+    return storedUnreadCounts ? JSON.parse(storedUnreadCounts) : {};
+  });
 
   // Get GraphQL context for saving messages to database
   const { executeQuery } = useGraphQL();
@@ -433,68 +439,123 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
     }
   };
 
-  // We'll use the unreadMessages state instead of fetching unread counts from the server
+  // Initialize unread message counts from server data when component loads
   useEffect(() => {
-    // No need to fetch unread counts from server, we'll use the local state
-    console.log("Using local unread message tracking");
+    if (!currentLoggedInUser?.id) return;
 
-    // We could set up a periodic check for new messages here if needed
-    // but we're already handling this through the socket connection
-  }, [currentLoggedInUser?.id]);
+    // Function to check for unread messages in all conversations
+    const checkForUnreadMessages = async () => {
+      try {
+        // Get all messages for the current user
+        const response = await executeQuery(GET_MESSAGES_QUERY, {});
 
-  // Add this effect to clear unread count when selecting a user
+        if (response && response.messages) {
+          // Count unread messages by sender
+          const unreadCounts = {};
+
+          response.messages.forEach(msg => {
+            // Only count messages sent to the current user that are unread
+            if (msg.sender.id !== currentLoggedInUser.id && !msg.read) {
+              const senderId = msg.sender.id;
+              unreadCounts[senderId] = (unreadCounts[senderId] || 0) + 1;
+            }
+          });
+
+          // Update unread counts state
+          if (Object.keys(unreadCounts).length > 0) {
+            setUnreadMessages(prev => {
+              const updatedCounts = { ...prev, ...unreadCounts };
+              localStorage.setItem('chatUnreadCounts', JSON.stringify(updatedCounts));
+              return updatedCounts;
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error checking for unread messages:", error);
+      }
+    };
+
+    // Check for unread messages when component loads
+    checkForUnreadMessages();
+
+  }, [currentLoggedInUser?.id, executeQuery]);
+
+  // Add this effect to clear unread count when selecting a user and mark messages as read in database
   useEffect(() => {
-    if (currentUser && unreadMessages[currentUser]) {
-      // Clear the unread status for this user
-      setUnreadMessages(prev => ({
-        ...prev,
-        [currentUser]: false
-      }));
+    if (currentUser) {
+      console.log("Clearing unread count for user:", currentUser);
 
-      // Also update in database
+      // Clear the unread count for this user regardless of current count
+      setUnreadMessages(prev => {
+        const updatedCounts = {
+          ...prev,
+          [currentUser]: 0
+        };
+
+        // Save to localStorage
+        localStorage.setItem('chatUnreadCounts', JSON.stringify(updatedCounts));
+
+        return updatedCounts;
+      });
+
+      // Also update in database - always mark messages as read when selecting a user
       executeQuery(MARK_ALL_MESSAGES_AS_READ_MUTATION, {
         senderId: currentUser
       }).catch(error => {
         console.error("Error marking messages as read:", error);
       });
     }
-  }, [currentUser, unreadMessages, executeQuery]);
+  }, [currentUser, executeQuery]); // Removed unreadMessages dependency to prevent unnecessary re-runs
 
-  // Add this effect to listen for new messages and mark them as unread
+  // Add this effect to listen for new messages and track unread counts
   useEffect(() => {
     if (!connected || !currentLoggedInUser?.id) return;
 
     const handleReceiveMessage = (message) => {
+      console.log("Received message for unread tracking:", message);
+
       // If the message is from someone else to the current user
       if (message.receiverId === currentLoggedInUser.id &&
           message.senderId !== currentLoggedInUser.id) {
 
-        // If we're not currently chatting with this user, mark as unread
+        // If we're not currently chatting with this user, increment unread count
         if (message.senderId !== currentUser) {
-          setUnreadMessages(prev => ({
-            ...prev,
-            [message.senderId]: true
-          }));
+          console.log("Incrementing unread count for user:", message.senderId);
+
+          setUnreadMessages(prev => {
+            const currentCount = prev[message.senderId] || 0;
+            const updatedCounts = {
+              ...prev,
+              [message.senderId]: currentCount + 1
+            };
+
+            console.log("Updated unread counts:", updatedCounts);
+
+            // Save to localStorage
+            localStorage.setItem('chatUnreadCounts', JSON.stringify(updatedCounts));
+
+            return updatedCounts;
+          });
+        } else {
+          console.log("Message is from current chat user, not incrementing unread count");
+
+          // Even though we're chatting with this user, make sure to mark as read in database
+          markMessagesAsRead(message.senderId, currentLoggedInUser.id);
         }
       }
     };
 
     const unsubscribe = onReceiveMessage(handleReceiveMessage);
+    console.log("Subscribed to receive messages for unread tracking");
 
     return () => {
+      console.log("Unsubscribing from unread tracking message listener");
       unsubscribe();
     };
-  }, [connected, currentUser, currentLoggedInUser?.id, onReceiveMessage]);
+  }, [connected, currentUser, currentLoggedInUser?.id, onReceiveMessage, markMessagesAsRead]);
 
-  // Add this effect to clear unread status when selecting a user
-  useEffect(() => {
-    if (currentUser && unreadMessages[currentUser]) {
-      setUnreadMessages(prev => ({
-        ...prev,
-        [currentUser]: false
-      }));
-    }
-  }, [currentUser, unreadMessages]);
+  // We've consolidated the unread count clearing logic in the effect above
+  // This effect has been removed to avoid duplicate functionality
 
   return (
     <div className="flex h-[calc(100vh-160px)]">
@@ -506,7 +567,11 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
               {users.map((user) => (
                 <li
                   key={user.id}
-                  onClick={() => setCurrentUser(user.id)}
+                  onClick={() => {
+                    console.log("User clicked:", user.name, "with ID:", user.id);
+                    console.log("Current unread count:", unreadMessages[user.id] || 0);
+                    setCurrentUser(user.id);
+                  }}
                   className={`p-3 cursor-pointer rounded-lg transition-colors ${
                     currentUser === user.id
                       ? "bg-blue-600 text-white"
@@ -519,7 +584,9 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
                         {user.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-medium">{user.name}</span>
+                        <span className={`font-medium ${unreadMessages[user.id] > 0 ? 'text-red-500 font-bold' : ''}`}>
+                          {user.name}
+                        </span>
                         {user.role && (
                           <span className="text-xs text-gray-500 dark:text-gray-400">
                             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
@@ -528,9 +595,11 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
                       </div>
                     </div>
 
-                    {/* Simple unread indicator */}
-                    {unreadMessages[user.id] && (
-                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    {/* Enhanced unread message indicator */}
+                    {unreadMessages[user.id] > 0 && (
+                      <div className="flex items-center justify-center min-w-5 h-5 px-1.5 bg-red-500 text-white text-xs font-medium rounded-full">
+                        {unreadMessages[user.id]}
+                      </div>
                     )}
                   </div>
                 </li>
