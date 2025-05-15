@@ -19,6 +19,22 @@ export const GET_USERS_QUERY = `
 `;
 
 /**
+ * Query to get users by role
+ */
+export const GET_USERS_BY_ROLE_QUERY = `
+  query GetUsersByRole {
+    users {
+      id
+      name
+      email
+      role
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+/**
  * Query to get a single user by ID
  */
 export const GET_USER_QUERY = `

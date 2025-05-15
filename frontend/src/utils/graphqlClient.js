@@ -8,10 +8,11 @@
 /**
  * GraphQL API endpoint URL
  * Uses environment variable if available, otherwise falls back to localhost
+ * Ensures the URL ends with /graphql
  *
  * @type {string}
  */
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000/graphql";
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:4000") + "/graphql";
 
 /**
  * Execute a GraphQL query or mutation

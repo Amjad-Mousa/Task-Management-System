@@ -33,10 +33,20 @@ export {
 // User queries and mutations (common to both student and admin)
 export {
   GET_USERS_QUERY,
+  GET_USERS_BY_ROLE_QUERY,
   GET_USER_QUERY,
   UPDATE_USER_MUTATION,
   DELETE_USER_MUTATION,
 } from "./users";
+
+// Message queries and mutations
+export {
+  GET_MESSAGES_QUERY,
+  GET_MESSAGES_BETWEEN_USERS_QUERY,
+  CREATE_MESSAGE_MUTATION,
+  MARK_MESSAGE_AS_READ_MUTATION,
+  MARK_ALL_MESSAGES_AS_READ_MUTATION,
+} from "./messages";
 
 // Student-specific queries and mutations
 export {
