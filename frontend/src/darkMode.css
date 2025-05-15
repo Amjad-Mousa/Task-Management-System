@@ -1,0 +1,215 @@
+/* Theme variables */
+:root {
+  /* Light mode colors */
+  --bg-light: #ffffff;
+  --text-light: #000000;
+  --sidebar-bg-light: #f3f4f6;
+  --sidebar-text-light: #111827;
+  --card-bg-light: #f3f4f6;
+  --card-text-light: #111827;
+  --blue-accent-light: #3b82f6;
+  --red-accent-light: #dc2626;
+  --red-accent-hover-light: #b91c1c;
+  --sidebar-border-light: rgba(0, 0, 0, 0.1);
+  --card-border-light: rgba(0, 0, 0, 0.1);
+  --dashboard-card-border-light: rgba(0, 0, 0, 0.15);
+
+  /* Dark mode colors */
+  --bg-dark: #1a202c;
+  --text-dark: #ffffff;
+  --sidebar-bg-dark: #1f2937;
+  --sidebar-text-dark: #ffffff;
+  --card-bg-dark: #374151;
+  --card-text-dark: #ffffff;
+  --blue-accent-dark: #60a5fa;
+  --red-accent-dark: #dc2626;
+  --red-accent-hover-dark: #b91c1c;
+  --sidebar-border-dark: rgba(255, 255, 255, 0.1);
+  --card-border-dark: rgba(255, 255, 255, 0.1);
+  --dashboard-card-border-dark: rgba(255, 255, 255, 0.15);
+}
+
+/* Base styles - Light mode by default */
+body {
+  background-color: var(--bg-light);
+  color: var(--text-light);
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+/* Dark mode overrides */
+.dark body,
+body.dark-mode {
+  background-color: var(--bg-dark) !important;
+  color: var(--text-dark) !important;
+}
+
+/* Background colors */
+.bg-white {
+  background-color: var(--bg-light);
+}
+
+.dark .bg-white,
+.dark-mode .bg-white {
+  background-color: var(--bg-dark) !important;
+}
+
+/* Text colors */
+.text-black {
+  color: var(--text-light);
+}
+
+.dark .text-black,
+.dark-mode .text-black {
+  color: var(--text-dark) !important;
+}
+
+/* Sidebar styling */
+aside {
+  background-color: var(--sidebar-bg-light);
+  color: var(--sidebar-text-light);
+  border-right: 1px solid var(--sidebar-border-light);
+  transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
+}
+
+.dark aside,
+.dark-mode aside {
+  background-color: var(--sidebar-bg-dark) !important;
+  color: var(--sidebar-text-dark) !important;
+  border-right: 1px solid var(--sidebar-border-dark);
+}
+
+/* Card styling */
+.bg-gray-200 {
+  background-color: var(--card-bg-light);
+  border: 1px solid var(--card-border-light);
+  color: var(--card-text-light);
+}
+
+.dark .bg-gray-200,
+.dark-mode .bg-gray-200,
+.dark .dark\:bg-gray-700,
+.dark-mode .dark\:bg-gray-700 {
+  background-color: var(--card-bg-dark) !important;
+  border: 1px solid var(--card-border-dark);
+  color: var(--card-text-dark) !important;
+}
+
+/* Text colors */
+.text-gray-800 {
+  color: var(--text-light);
+}
+
+.dark .text-gray-800,
+.dark-mode .text-gray-800,
+.dark .dark\:text-gray-100,
+.dark-mode .dark\:text-gray-100 {
+  color: var(--text-dark) !important;
+}
+
+.text-blue-600 {
+  color: var(--blue-accent-light);
+}
+
+.dark .text-blue-600,
+.dark-mode .text-blue-600,
+.dark .dark\:text-blue-400,
+.dark-mode .dark\:text-blue-400 {
+  color: var(--blue-accent-dark) !important;
+}
+
+/* Button styling */
+.bg-blue-600 {
+  background-color: var(--blue-accent-light);
+}
+
+.dark .bg-blue-600,
+.dark-mode .bg-blue-600 {
+  background-color: var(--blue-accent-dark) !important;
+}
+
+.bg-red-600 {
+  background-color: var(--red-accent-light);
+}
+
+.dark .bg-red-600,
+.dark-mode .bg-red-600 {
+  background-color: var(--red-accent-dark) !important;
+}
+
+.hover\:bg-red-700:hover {
+  background-color: var(--red-accent-hover-light);
+}
+
+.dark .hover\:bg-red-700:hover,
+.dark-mode .hover\:bg-red-700:hover {
+  background-color: var(--red-accent-hover-dark) !important;
+}
+
+/* Focus states */
+*:focus {
+  outline: 1px solid var(--blue-accent-light);
+  outline-offset: 1px;
+}
+
+.dark *:focus,
+.dark-mode *:focus {
+  outline: 1px solid var(--blue-accent-dark) !important;
+  outline-offset: 1px !important;
+}
+
+/* Form input focus states - thinner outline for form fields */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 1px solid var(--blue-accent-light);
+  outline-offset: 0;
+  box-shadow: 0 0 0 1px var(--blue-accent-light);
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus,
+.dark-mode input:focus,
+.dark-mode select:focus,
+.dark-mode textarea:focus {
+  outline: 1px solid var(--blue-accent-dark) !important;
+  outline-offset: 0 !important;
+  box-shadow: 0 0 0 1px var(--blue-accent-dark) !important;
+}
+
+/* Shadows */
+.shadow {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.dark .shadow,
+.dark-mode .shadow {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Dashboard card styling */
+.dashboard-card {
+  border: 1px solid var(--dashboard-card-border-light);
+  transition: background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.dark .dashboard-card,
+.dark-mode .dashboard-card {
+  border: 1px solid var(--dashboard-card-border-dark);
+}
+
+/* Success message animation */
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.success-message {
+  animation: slideInUp 0.5s ease forwards;
+}
