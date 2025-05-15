@@ -124,11 +124,12 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
 
         if (response.messagesBetweenUsers) {
           const formattedMessages = response.messagesBetweenUsers.map(msg => ({
-            id: msg.id,
+            id: msg.id || `db_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
             text: msg.content,
             sender: msg.sender.id === currentLoggedInUser.id ? "sent" : "received",
             timestamp: msg.timestamp,
-            read: msg.read
+            read: msg.read,
+            fromDatabase: true // Mark as loaded from database
           }));
 
           setMessages(prev => ({
@@ -193,12 +194,33 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
 
       // Only add the message if it's for the current chat
       if (isForCurrentUser && isForLoggedInUser) {
-        console.log("Adding message to chat with:", currentUser);
+        console.log("Processing message for chat with:", currentUser);
 
         setMessages((prev) => {
+          // Check if this message is already in the state (to prevent duplication)
+          const existingMessages = prev[currentUser] || [];
+
+          // If the message has an ID, check if we already have it
+          if (message.id) {
+            const isDuplicate = existingMessages.some(
+              msg => msg.id === message.id ||
+                    (msg.text === message.text &&
+                     msg.timestamp === message.timestamp &&
+                     msg.sender === (message.senderId === currentLoggedInUser.id ? "sent" : "received"))
+            );
+
+            // Skip adding if it's a duplicate
+            if (isDuplicate) {
+              console.log("Skipping duplicate message:", message.id);
+              return prev;
+            }
+          }
+
+          // If it's a new message, add it to the state
           const updatedMessages = {
             ...prev,
-            [currentUser]: [...(prev[currentUser] || []), {
+            [currentUser]: [...existingMessages, {
+              id: message.id || `socket_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
               text: message.text,
               sender: message.senderId === currentLoggedInUser.id ? "sent" : "received",
               timestamp: message.timestamp
@@ -259,12 +281,16 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
     }
 
     const timestamp = new Date().toISOString();
+    // Generate a unique message ID to prevent duplication
+    const messageId = `local_${currentLoggedInUser.id}_${Date.now()}`;
 
     // Add message to local state immediately for responsive UI
     const newMessage = {
+      id: messageId, // Add unique ID to identify this message
       text: messageInput,
       sender: "sent",
       timestamp,
+      isLocal: true // Mark as locally added to prevent duplication
     };
 
     setMessages((prev) => ({
@@ -280,6 +306,7 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
 
     // Create message object for Socket.IO
     const messageObj = {
+      id: messageId, // Include the same ID in the socket message
       text: messageCopy,
       senderId: currentLoggedInUser.id,
       senderName: currentLoggedInUser.username || currentLoggedInUser.name,
@@ -402,7 +429,7 @@ const ChatInterfaceInner = ({ users, initialMessages = {} }) => {
             {currentUser &&
               messages[currentUser]?.map((msg, index) => (
                 <div
-                  key={index}
+                  key={msg.id || index}
                   className={`flex flex-col ${
                     msg.sender === "received" ? "items-start" : "items-end"
                   }`}
