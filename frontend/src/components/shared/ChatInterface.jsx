@@ -803,4 +803,32 @@ const ChatInterface = (props) => {
   );
 };
 
+/**
+ * ChatInterface component - Provides a complete chat interface with real-time messaging
+ * 
+ * @component
+ * @exports ChatInterface
+ * 
+ * @description
+ * This component provides a complete chat interface with real-time messaging capabilities.
+ * It wraps the inner implementation with a SocketProvider to enable real-time communication
+ * and handles loading/saving messages from localStorage for persistence between sessions.
+ * 
+ * @example
+ * // Basic usage
+ * <ChatInterface users={usersList} />
+ * 
+ * @example
+ * // With initial messages
+ * <ChatInterface 
+ *   users={usersList} 
+ *   initialMessages={existingMessages} 
+ * />
+ * 
+ * @param {Object} props - Component props
+ * @param {Array<Object>} props.users - Array of user objects with id and name properties
+ * @param {Object} [props.initialMessages={}] - Initial messages object keyed by user ID
+ * @param {string} [props.role] - Optional role of the current user (e.g., "admin", "user")
+ * @returns {React.ReactElement} Rendered ChatInterface component with Socket.IO context
+ */
 export default ChatInterface;
